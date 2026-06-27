@@ -5,15 +5,12 @@ import com.dentistrybot.shared.repository.ResultRepository;
 import com.dentistrybot.shared.repository.TestRepository;
 import com.dentistrybot.shared.state.CachedOptionData;
 import com.dentistrybot.shared.state.CachedQuestionData;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Service
 public class TestService {
 
     private final TestRepository testRepository;

@@ -77,6 +77,7 @@ public class ImportService {
                     correct = cellString(row, 6).toUpperCase();
                 }
 
+                validateCorrectAnswer(correct, optA, optB, optC, optD, optE, i + 1);
                 orderNum++;
                 Question q = new Question();
                 q.setTestId(testId);
@@ -137,6 +138,7 @@ public class ImportService {
                 correct = row.length > 6 ? row[6].trim().toUpperCase() : "";
             }
 
+            validateCorrectAnswer(correct, optA, optB, optC, optD, optE, i + 1);
             orderNum++;
             Question q = new Question();
             q.setTestId(testId);
@@ -229,6 +231,20 @@ public class ImportService {
             ao.setCorrect(opt.letter().equals(correct));
             ao.setOrderNum(opt.order());
             testRepository.createAnswerOption(ao);
+        }
+    }
+
+    private void validateCorrectAnswer(String correct, String a, String b, String c, String d, String e, int rowNumber) {
+        boolean valid = switch (correct) {
+            case "A" -> !a.isEmpty();
+            case "B" -> !b.isEmpty();
+            case "C" -> !c.isEmpty();
+            case "D" -> !d.isEmpty();
+            case "E" -> !e.isEmpty();
+            default -> false;
+        };
+        if (!valid) {
+            throw new IllegalArgumentException("Row " + rowNumber + ": correct answer must match an existing option A-E");
         }
     }
 

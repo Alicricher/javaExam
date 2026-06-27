@@ -25,6 +25,11 @@ public class NotificationService {
     }
 
     public void notifySituationalGraded(int answerId) {
+        if (studentBotClient == null) {
+            log.debug("Skipping situational grading notification: student bot token is not configured");
+            return;
+        }
+
         try {
             SituationalAnswer answer = resultRepository.getSituationalAnswerById(answerId);
             if (answer == null) return;
@@ -32,20 +37,18 @@ public class NotificationService {
             var student = studentRepository.getStudentById(answer.getStudentId());
             if (student == null) return;
 
-            String grade = answer.getGrade() != null ? answer.getGrade() + "/100" : "—";
+            String grade = answer.getGrade() != null ? answer.getGrade() + "/100" : "-";
             String feedback = (answer.getFeedback() != null && !answer.getFeedback().isEmpty())
                 ? answer.getFeedback() : "Izoh yo'q";
 
             String text = String.format(
-                "✅ Vaziyatli topshirig'ingiz baholandi!\n\nBaho: %s\nIzoh: %s",
+                "Vaziyatli topshirig'ingiz baholandi!\n\nBaho: %s\nIzoh: %s",
                 grade, feedback);
 
-            SendMessage msg = SendMessage.builder()
+            studentBotClient.execute(SendMessage.builder()
                 .chatId(student.getTelegramId())
                 .text(text)
-                .build();
-
-            studentBotClient.execute(msg);
+                .build());
         } catch (Exception e) {
             log.error("Failed to notify student about graded situational answer {}: {}", answerId, e.getMessage());
         }

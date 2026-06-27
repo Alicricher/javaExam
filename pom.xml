@@ -19,7 +19,7 @@
     <modules>
         <module>shared</module>
         <module>studentbot</module>
-        <module>adminbot</module>
+        <module>adminweb</module>
     </modules>
 
     <properties>

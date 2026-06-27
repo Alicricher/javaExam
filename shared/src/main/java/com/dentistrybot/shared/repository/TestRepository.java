@@ -191,6 +191,13 @@ public class TestRepository {
         updateTestTotalPoints(testId);
     }
 
+    public int getNextQuestionOrderNum(int testId) {
+        Integer max = jdbc.queryForObject(
+            "SELECT COALESCE(MAX(order_num), 0) FROM questions WHERE test_id = :testId",
+            Map.of("testId", testId), Integer.class);
+        return (max != null ? max : 0) + 1;
+    }
+
     public void swapQuestionOrders(int question1Id, int question2Id) {
         Integer order1 = jdbc.queryForObject("SELECT order_num FROM questions WHERE id = :id",
             Map.of("id", question1Id), Integer.class);
@@ -250,7 +257,7 @@ public class TestRepository {
     public void setCorrectAnswer(int questionId, int correctOptionId) {
         jdbc.update("UPDATE answer_options SET is_correct = FALSE WHERE question_id = :questionId",
             Map.of("questionId", questionId));
-        jdbc.update("UPDATE answer_options SET is_correct = TRUE WHERE id = :id",
-            Map.of("id", correctOptionId));
+        jdbc.update("UPDATE answer_options SET is_correct = TRUE WHERE id = :id AND question_id = :questionId",
+            Map.of("id", correctOptionId, "questionId", questionId));
     }
 }

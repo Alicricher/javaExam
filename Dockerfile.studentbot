@@ -4,7 +4,7 @@ WORKDIR /build
 COPY pom.xml ./
 COPY shared/pom.xml shared/
 COPY studentbot/pom.xml studentbot/
-COPY adminbot/pom.xml adminbot/
+COPY adminweb/pom.xml adminweb/
 
 RUN mvn dependency:go-offline -pl shared,studentbot -am -q
 

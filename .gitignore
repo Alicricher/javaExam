@@ -1,0 +1,18 @@
+/.env
+
+# Build outputs
+target/
+dist/
+
+# Frontend dependencies
+node_modules/
+
+# Runtime logs
+*.log
+
+# IDE/local files
+.idea/workspace.xml
+
+# OS metadata
+.DS_Store
+Thumbs.db

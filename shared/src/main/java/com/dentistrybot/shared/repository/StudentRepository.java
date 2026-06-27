@@ -105,13 +105,48 @@ public class StudentRepository {
         return Boolean.TRUE.equals(exists);
     }
 
+    public List<Integer> getDistinctCourses() {
+        return jdbc.queryForList(
+            "SELECT DISTINCT course FROM students WHERE course > 0 ORDER BY course",
+            Map.of(),
+            Integer.class
+        );
+    }
+
+    public List<String> getDistinctGroups() {
+        return getDistinctTextValues("group_name");
+    }
+
+    public List<String> getDistinctSubgroups() {
+        return getDistinctTextValues("subgroup");
+    }
+
+    public List<String> getDistinctFaculties() {
+        return getDistinctTextValues("faculty");
+    }
+
+    private List<String> getDistinctTextValues(String columnName) {
+        String sql = "SELECT DISTINCT " + columnName + " FROM students " +
+            "WHERE " + columnName + " IS NOT NULL AND TRIM(" + columnName + ") <> '' " +
+            "ORDER BY " + columnName;
+        return jdbc.queryForList(sql, Map.of(), String.class);
+    }
+
     public List<Student> getStudents(StudentFilter filter) {
         var conditions = new ArrayList<String>();
         var params = new MapSqlParameterSource();
 
         if (filter.getFullName() != null && !filter.getFullName().isEmpty()) {
-            conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
-            params.addValue("fullName", "%" + filter.getFullName() + "%");
+            String search = filter.getFullName().trim();
+            if (search.matches("\\d{1,18}")) {
+                long numericSearch = Long.parseLong(search);
+                conditions.add("(LOWER(full_name) LIKE LOWER(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
+                params.addValue("studentId", numericSearch <= Integer.MAX_VALUE ? (int) numericSearch : -1);
+                params.addValue("telegramId", numericSearch);
+            } else {
+                conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
+            }
+            params.addValue("fullName", "%" + search + "%");
         }
         if (filter.getCourse() > 0) {
             conditions.add("course = :course");
@@ -147,8 +182,16 @@ public class StudentRepository {
         var params = new MapSqlParameterSource();
 
         if (filter.getFullName() != null && !filter.getFullName().isEmpty()) {
-            conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
-            params.addValue("fullName", "%" + filter.getFullName() + "%");
+            String search = filter.getFullName().trim();
+            if (search.matches("\\d{1,18}")) {
+                long numericSearch = Long.parseLong(search);
+                conditions.add("(LOWER(full_name) LIKE LOWER(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
+                params.addValue("studentId", numericSearch <= Integer.MAX_VALUE ? (int) numericSearch : -1);
+                params.addValue("telegramId", numericSearch);
+            } else {
+                conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
+            }
+            params.addValue("fullName", "%" + search + "%");
         }
         if (filter.getCourse() > 0) {
             conditions.add("course = :course");

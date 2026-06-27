@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,7 +21,6 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 @SpringBootApplication(scanBasePackages = {"com.dentistrybot.student", "com.dentistrybot.shared"})
 @EnableScheduling
-@EnableConfigurationProperties(AppProperties.class)
 public class StudentBotApplication {
 
     @Autowired @org.springframework.context.annotation.Lazy private StudentUpdateDispatcher studentUpdateDispatcher;

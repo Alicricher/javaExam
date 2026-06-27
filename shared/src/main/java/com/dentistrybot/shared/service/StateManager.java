@@ -3,9 +3,6 @@ package com.dentistrybot.shared.service;
 import com.dentistrybot.shared.repository.StateRepository;
 import com.dentistrybot.shared.state.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Service;
-
-@Service
 public class StateManager {
 
     private final StateRepository stateRepository;

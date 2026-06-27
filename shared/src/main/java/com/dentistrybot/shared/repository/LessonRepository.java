@@ -233,6 +233,16 @@ public class LessonRepository {
             Map.of("id", id, "description", description));
     }
 
+    public void updateTheoryMaterialType(int id, String materialType) {
+        jdbc.update("UPDATE theory_materials SET material_type = :materialType WHERE id = :id",
+            Map.of("id", id, "materialType", materialType));
+    }
+
+    public void updateTheoryMaterialFilePath(int id, String filePath) {
+        jdbc.update("UPDATE theory_materials SET file_path = :filePath WHERE id = :id",
+            Map.of("id", id, "filePath", filePath));
+    }
+
     // ==================== SITUATIONAL TASKS ====================
 
     public List<SituationalTask> getSituationalTasksByLessonId(int lessonId) {

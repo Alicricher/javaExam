@@ -197,6 +197,14 @@ public class ResultRepository {
             """, Map.of("studentId", studentId, "limit", limit, "offset", offset), RESULT_WITH_STUDENT_MAPPER);
     }
 
+    public int countTestResultsByStudentId(int studentId) {
+        Integer count = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM test_results WHERE student_id = :studentId",
+            Map.of("studentId", studentId),
+            Integer.class);
+        return count != null ? count : 0;
+    }
+
     public int countTestResultsWithStudents() {
         Integer count = jdbc.queryForObject(
             "SELECT COUNT(*) FROM test_results tr JOIN students s ON tr.student_id = s.id",
@@ -204,7 +212,11 @@ public class ResultRepository {
         return count != null ? count : 0;
     }
 
-    public List<TestResultWithStudent> getTestResultsFiltered(String groupName, String subgroupName, String studentName, int limit, int offset) {
+    public List<TestResultWithStudent> getTestResultsFiltered(String groupName, String subgroupName,
+                                                              String studentName, String testName,
+                                                              String status, Integer unitId,
+                                                              Integer lessonId, Integer testId,
+                                                              int limit, int offset) {
         var conditions = new ArrayList<String>();
         var params = new MapSqlParameterSource();
 
@@ -219,6 +231,26 @@ public class ResultRepository {
         if (studentName != null && !studentName.isEmpty()) {
             conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
+        }
+        if (testName != null && !testName.isEmpty()) {
+            conditions.add("(LOWER(t.title_uz) LIKE LOWER(:testName) OR LOWER(l.title_uz) LIKE LOWER(:testName) OR LOWER(u.name) LIKE LOWER(:testName))");
+            params.addValue("testName", "%" + testName + "%");
+        }
+        if (status != null && !status.isEmpty()) {
+            conditions.add("tr.status = :status");
+            params.addValue("status", status);
+        }
+        if (unitId != null && unitId > 0) {
+            conditions.add("u.id = :unitId");
+            params.addValue("unitId", unitId);
+        }
+        if (lessonId != null && lessonId > 0) {
+            conditions.add("l.id = :lessonId");
+            params.addValue("lessonId", lessonId);
+        }
+        if (testId != null && testId > 0) {
+            conditions.add("tr.test_id = :testId");
+            params.addValue("testId", testId);
         }
 
         String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
@@ -244,7 +276,9 @@ public class ResultRepository {
             params, RESULT_WITH_STUDENT_MAPPER);
     }
 
-    public int countTestResultsFiltered(String groupName, String subgroupName, String studentName) {
+    public int countTestResultsFiltered(String groupName, String subgroupName, String studentName,
+                                        String testName, String status, Integer unitId,
+                                        Integer lessonId, Integer testId) {
         var conditions = new ArrayList<String>();
         var params = new MapSqlParameterSource();
         if (groupName != null && !groupName.isEmpty()) {
@@ -259,10 +293,37 @@ public class ResultRepository {
             conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
+        if (testName != null && !testName.isEmpty()) {
+            conditions.add("(LOWER(t.title_uz) LIKE LOWER(:testName) OR LOWER(l.title_uz) LIKE LOWER(:testName) OR LOWER(u.name) LIKE LOWER(:testName))");
+            params.addValue("testName", "%" + testName + "%");
+        }
+        if (status != null && !status.isEmpty()) {
+            conditions.add("tr.status = :status");
+            params.addValue("status", status);
+        }
+        if (unitId != null && unitId > 0) {
+            conditions.add("u.id = :unitId");
+            params.addValue("unitId", unitId);
+        }
+        if (lessonId != null && lessonId > 0) {
+            conditions.add("l.id = :lessonId");
+            params.addValue("lessonId", lessonId);
+        }
+        if (testId != null && testId > 0) {
+            conditions.add("tr.test_id = :testId");
+            params.addValue("testId", testId);
+        }
         String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
-        Integer count = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM test_results tr JOIN students s ON tr.student_id = s.id" + where,
-            params, Integer.class);
+        Integer count = jdbc.queryForObject("""
+            SELECT COUNT(*)
+            FROM test_results tr
+            JOIN students s ON tr.student_id = s.id
+            JOIN tests t ON tr.test_id = t.id
+            JOIN lessons l ON t.lesson_id = l.id
+            JOIN units u ON l.unit_id = u.id
+            """ + where,
+            params,
+            Integer.class);
         return count != null ? count : 0;
     }
 
@@ -354,7 +415,7 @@ public class ResultRepository {
         var params = new MapSqlParameterSource()
             .addValue("studentId", retake.getStudentId())
             .addValue("testId", retake.getTestId())
-            .addValue("grantedBy", retake.getGrantedBy());
+            .addValue("grantedBy", retake.getGrantedBy() > 0 ? retake.getGrantedBy() : null);
         var keyHolder = new GeneratedKeyHolder();
         jdbc.update(sql, params, keyHolder, new String[]{"id", "granted_at"});
         var keys = keyHolder.getKeys();
@@ -428,14 +489,18 @@ public class ResultRepository {
         return map;
     }
 
-    public void gradeSituationalAnswer(int id, int grade, String feedback, int gradedBy) {
+    public void gradeSituationalAnswer(int id, int grade, String feedback, Integer gradedBy) {
         jdbc.update("""
             UPDATE situational_answers
             SET is_graded = TRUE, grade = :grade, feedback = :feedback, graded_by = :gradedBy, graded_at = :gradedAt
             WHERE id = :id
             """,
-            Map.of("id", id, "grade", grade, "feedback", feedback, "gradedBy", gradedBy,
-                   "gradedAt", LocalDateTime.now()));
+            new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("grade", grade)
+                .addValue("feedback", feedback)
+                .addValue("gradedBy", gradedBy)
+                .addValue("gradedAt", LocalDateTime.now()));
     }
 
     public List<SituationalAnswerWithStudent> getSituationalAnswersWithStudents(int limit, int offset) {
@@ -464,7 +529,8 @@ public class ResultRepository {
         return count != null ? count : 0;
     }
 
-    public int countSituationalAnswersFiltered(String groupName, String subgroupName, String studentName) {
+    public int countSituationalAnswersFiltered(String groupName, String subgroupName, String studentName,
+                                               String graded, Integer unitId, Integer lessonId, Integer taskId) {
         var conditions = new ArrayList<String>();
         var params = new MapSqlParameterSource();
         if (groupName != null && !groupName.isEmpty()) {
@@ -479,14 +545,40 @@ public class ResultRepository {
             conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
+        if (graded != null && !graded.isEmpty()) {
+            conditions.add("sa.is_graded = :graded");
+            params.addValue("graded", Boolean.parseBoolean(graded));
+        }
+        if (unitId != null && unitId > 0) {
+            conditions.add("u.id = :unitId");
+            params.addValue("unitId", unitId);
+        }
+        if (lessonId != null && lessonId > 0) {
+            conditions.add("l.id = :lessonId");
+            params.addValue("lessonId", lessonId);
+        }
+        if (taskId != null && taskId > 0) {
+            conditions.add("sa.task_id = :taskId");
+            params.addValue("taskId", taskId);
+        }
         String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
-        Integer count = jdbc.queryForObject(
-            "SELECT COUNT(*) FROM situational_answers sa JOIN students s ON sa.student_id = s.id LEFT JOIN situational_tasks st ON sa.task_id = st.id" + where,
-            params, Integer.class);
+        Integer count = jdbc.queryForObject("""
+            SELECT COUNT(*)
+            FROM situational_answers sa
+            JOIN students s ON sa.student_id = s.id
+            LEFT JOIN situational_tasks st ON sa.task_id = st.id
+            LEFT JOIN lessons l ON st.lesson_id = l.id
+            LEFT JOIN units u ON l.unit_id = u.id
+            """ + where,
+            params,
+            Integer.class);
         return count != null ? count : 0;
     }
 
-    public List<SituationalAnswerWithStudent> getSituationalAnswersFiltered(String groupName, String subgroupName, String studentName, int limit, int offset) {
+    public List<SituationalAnswerWithStudent> getSituationalAnswersFiltered(String groupName, String subgroupName,
+                                                                            String studentName, String graded,
+                                                                            Integer unitId, Integer lessonId,
+                                                                            Integer taskId, int limit, int offset) {
         var conditions = new ArrayList<String>();
         var params = new MapSqlParameterSource();
         if (groupName != null && !groupName.isEmpty()) {
@@ -500,6 +592,22 @@ public class ResultRepository {
         if (studentName != null && !studentName.isEmpty()) {
             conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
+        }
+        if (graded != null && !graded.isEmpty()) {
+            conditions.add("sa.is_graded = :graded");
+            params.addValue("graded", Boolean.parseBoolean(graded));
+        }
+        if (unitId != null && unitId > 0) {
+            conditions.add("u.id = :unitId");
+            params.addValue("unitId", unitId);
+        }
+        if (lessonId != null && lessonId > 0) {
+            conditions.add("l.id = :lessonId");
+            params.addValue("lessonId", lessonId);
+        }
+        if (taskId != null && taskId > 0) {
+            conditions.add("sa.task_id = :taskId");
+            params.addValue("taskId", taskId);
         }
         String where = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
         params.addValue("limit", limit).addValue("offset", offset);
@@ -537,7 +645,7 @@ public class ResultRepository {
         var params = new MapSqlParameterSource()
             .addValue("studentId", retake.getStudentId())
             .addValue("taskId", retake.getTaskId())
-            .addValue("grantedBy", retake.getGrantedBy());
+            .addValue("grantedBy", retake.getGrantedBy() > 0 ? retake.getGrantedBy() : null);
         var keyHolder = new GeneratedKeyHolder();
         jdbc.update(sql, params, keyHolder, new String[]{"id", "granted_at"});
         var keys = keyHolder.getKeys();

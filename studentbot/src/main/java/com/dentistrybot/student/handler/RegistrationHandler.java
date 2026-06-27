@@ -140,6 +140,15 @@ public class RegistrationHandler {
             if (data == null) data = new RegData();
             answerCallback(callback.getId());
 
+            stateManager.clearState(telegramId);
+            try { bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build()); } catch (Exception ignored) {}
+
+            if (studentRepository.studentExists(telegramId)) {
+                bot.execute(SendMessage.builder().chatId(chatId)
+                    .text(UzMessages.MSG_MAIN_MENU).replyMarkup(StudentKeyboards.mainMenu()).build());
+                return;
+            }
+
             Student student = new Student();
             student.setTelegramId(telegramId);
             student.setFullName(data.fullName);
@@ -148,9 +157,6 @@ public class RegistrationHandler {
             student.setSubgroup(data.subgroup);
             student.setFaculty(faculty);
             studentRepository.createStudent(student);
-
-            stateManager.clearState(telegramId);
-            bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
 
             String text = String.format(UzMessages.MSG_REGISTER_COMPLETE,
                 student.getFullName(), student.getCourse(), student.getGroupName(),

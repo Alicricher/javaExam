@@ -18,4 +18,10 @@ public class QuestionWithOptions {
 
     public List<AnswerOption> getOptions() { return options; }
     public void setOptions(List<AnswerOption> options) { this.options = options; }
+
+    public int getId() { return question != null ? question.getId() : 0; }
+    public int getTestId() { return question != null ? question.getTestId() : 0; }
+    public String getQuestionText() { return question != null ? question.getQuestionText() : null; }
+    public int getPoints() { return question != null ? question.getPoints() : 0; }
+    public int getOrderNum() { return question != null ? question.getOrderNum() : 0; }
 }
