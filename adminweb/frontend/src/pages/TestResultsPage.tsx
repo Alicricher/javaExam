@@ -4,7 +4,7 @@ import {
   Statistic, Progress, Modal, Descriptions, Popconfirm, message,
 } from 'antd'
 import { SearchOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons'
-import { getLessonTest, getTestResults, getUnitLessons, getUnits, grantTestRetake } from '../api/api'
+import { getLessonTest, getTestResultAnswers, getTestResults, getUnitLessons, getUnits, grantTestRetake } from '../api/api'
 
 const { Title, Text } = Typography
 
@@ -27,6 +27,18 @@ interface TestResult {
 interface Unit { id: number; name: string; titleUz: string }
 interface Lesson { id: number; lessonNumber: number; titleUz: string }
 interface TestInfo { id: number; titleUz: string }
+interface TestAnswerDetail {
+  questionId: number
+  orderNum: number
+  questionText: string
+  points: number
+  selectedOptionId: number | null
+  selectedOptionText: string | null
+  correctOptionId: number | null
+  correctOptionText: string | null
+  isCorrect: boolean
+  answeredAt?: string
+}
 
 const statusMeta = {
   completed: { label: 'Yakunlangan', color: 'green' },
@@ -56,6 +68,8 @@ export default function TestResultsPage() {
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [lessonTest, setLessonTest] = useState<TestInfo | null>(null)
   const [selected, setSelected] = useState<TestResult | null>(null)
+  const [answerDetails, setAnswerDetails] = useState<TestAnswerDetail[]>([])
+  const [answersLoading, setAnswersLoading] = useState(false)
 
   const load = async (p = page, f = filters) => {
     setLoading(true)
@@ -144,6 +158,18 @@ export default function TestResultsPage() {
   const giveRetake = async (result: TestResult) => {
     await grantTestRetake(result.studentId, result.testId)
     message.success('Qayta topshirish berildi')
+  }
+
+  const openResult = async (result: TestResult) => {
+    setSelected(result)
+    setAnswerDetails([])
+    setAnswersLoading(true)
+    try {
+      const res = await getTestResultAnswers(result.id)
+      setAnswerDetails(res.data)
+    } finally {
+      setAnswersLoading(false)
+    }
   }
 
   return (
@@ -238,7 +264,7 @@ export default function TestResultsPage() {
             title: 'Amallar', key: 'actions', width: 160, fixed: 'right',
             render: (_: unknown, r: TestResult) => (
               <Space>
-                <Button size="small" icon={<EyeOutlined />} onClick={() => setSelected(r)}>Ko'rish</Button>
+                <Button size="small" icon={<EyeOutlined />} onClick={() => openResult(r)}>Ko'rish</Button>
                 <Popconfirm title="Bu test uchun qayta topshirish berilsinmi?" onConfirm={() => giveRetake(r)} okText="Ha" cancelText="Yo'q">
                   <Button size="small" icon={<ReloadOutlined />} />
                 </Popconfirm>
@@ -248,22 +274,52 @@ export default function TestResultsPage() {
         ]}
       />
 
-      <Modal title="Test natijasi" open={!!selected} footer={null} onCancel={() => setSelected(null)} width={680}>
+      <Modal title="Test natijasi" open={!!selected} footer={null}
+        onCancel={() => { setSelected(null); setAnswerDetails([]) }} width={920}>
         {selected && (
-          <Descriptions bordered size="small" column={1}>
-            <Descriptions.Item label="Talaba">{selected.studentName}</Descriptions.Item>
-            <Descriptions.Item label="Test">{selected.testTitle}</Descriptions.Item>
-            <Descriptions.Item label="Dars">{selected.lessonTitle}</Descriptions.Item>
-            <Descriptions.Item label="Bo'lim">{selected.unitName}</Descriptions.Item>
-            <Descriptions.Item label="Ball">{selected.score}/{selected.maxScore} ({percentOf(selected)}%)</Descriptions.Item>
-            <Descriptions.Item label="Urinish">{selected.attemptNumber}</Descriptions.Item>
-            <Descriptions.Item label="Holat">
-              <Tag color={statusMeta[selected.status].color}>{statusMeta[selected.status].label}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Boshlangan">{selected.startedAt ? new Date(selected.startedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
-            <Descriptions.Item label="Tugagan">{selected.completedAt ? new Date(selected.completedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
-            <Descriptions.Item label="ID">result: {selected.id}, student: {selected.studentId}, test: {selected.testId}</Descriptions.Item>
-          </Descriptions>
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Descriptions bordered size="small" column={1}>
+              <Descriptions.Item label="Talaba">{selected.studentName}</Descriptions.Item>
+              <Descriptions.Item label="Test">{selected.testTitle}</Descriptions.Item>
+              <Descriptions.Item label="Dars">{selected.lessonTitle}</Descriptions.Item>
+              <Descriptions.Item label="Bo'lim">{selected.unitName}</Descriptions.Item>
+              <Descriptions.Item label="Ball">{selected.score}/{selected.maxScore} ({percentOf(selected)}%)</Descriptions.Item>
+              <Descriptions.Item label="Urinish">{selected.attemptNumber}</Descriptions.Item>
+              <Descriptions.Item label="Holat">
+                <Tag color={statusMeta[selected.status].color}>{statusMeta[selected.status].label}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Boshlangan">{selected.startedAt ? new Date(selected.startedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
+              <Descriptions.Item label="Tugagan">{selected.completedAt ? new Date(selected.completedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
+              <Descriptions.Item label="ID">result: {selected.id}, student: {selected.studentId}, test: {selected.testId}</Descriptions.Item>
+            </Descriptions>
+            <Table
+              rowKey="questionId"
+              size="small"
+              loading={answersLoading}
+              dataSource={answerDetails}
+              pagination={false}
+              scroll={{ x: 820 }}
+              columns={[
+                { title: '#', dataIndex: 'orderNum', width: 58 },
+                { title: 'Savol', dataIndex: 'questionText', width: 260, ellipsis: true },
+                {
+                  title: 'Talaba javobi', dataIndex: 'selectedOptionText', width: 220,
+                  render: (v: string | null) => v || <Text type="secondary">Javob berilmagan</Text>,
+                },
+                {
+                  title: "To'g'ri javob", dataIndex: 'correctOptionText', width: 220,
+                  render: (v: string | null) => v || '-',
+                },
+                {
+                  title: 'Natija', key: 'isCorrect', width: 120,
+                  render: (_: unknown, a: TestAnswerDetail) => a.selectedOptionId == null
+                    ? <Tag>Berilmagan</Tag>
+                    : a.isCorrect ? <Tag color="green">To'g'ri</Tag> : <Tag color="red">Noto'g'ri</Tag>,
+                },
+                { title: 'Ball', dataIndex: 'points', width: 70 },
+              ]}
+            />
+          </Space>
         )}
       </Modal>
     </div>

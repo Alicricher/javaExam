@@ -93,6 +93,8 @@ export const deleteTask = (id: number) => client.delete(`/tasks/${id}`)
 // Results
 export const getTestResults = (params?: Record<string, unknown>) =>
   client.get('/results/tests', { params })
+export const getTestResultAnswers = (id: number) =>
+  client.get(`/results/tests/${id}/answers`)
 export const getSituationalResults = (params?: Record<string, unknown>) =>
   client.get('/results/situational', { params })
 export const getSituationalAnswer = (id: number) =>

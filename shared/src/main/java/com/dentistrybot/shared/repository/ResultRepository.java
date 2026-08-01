@@ -395,6 +395,43 @@ public class ResultRepository {
         });
     }
 
+    public List<Map<String, Object>> getTestAnswerDetailsByResultId(int resultId) {
+        return jdbc.query("""
+            SELECT q.id as question_id,
+                   q.order_num,
+                   q.question_text,
+                   q.points,
+                   ta.selected_option_id,
+                   selected.option_text as selected_option_text,
+                   correct.id as correct_option_id,
+                   correct.option_text as correct_option_text,
+                   COALESCE(ta.is_correct, FALSE) as is_correct,
+                   ta.answered_at
+            FROM test_results tr
+            JOIN questions q ON q.test_id = tr.test_id
+            LEFT JOIN test_answers ta ON ta.result_id = tr.id AND ta.question_id = q.id
+            LEFT JOIN answer_options selected ON selected.id = ta.selected_option_id
+            LEFT JOIN answer_options correct ON correct.question_id = q.id AND correct.is_correct = TRUE
+            WHERE tr.id = :resultId
+            ORDER BY q.order_num ASC, correct.order_num ASC
+            """, Map.of("resultId", resultId), (rs, rowNum) -> {
+            Map<String, Object> row = new HashMap<>();
+            row.put("questionId", rs.getInt("question_id"));
+            row.put("orderNum", rs.getInt("order_num"));
+            row.put("questionText", rs.getString("question_text"));
+            row.put("points", rs.getInt("points"));
+            int selectedOptionId = rs.getInt("selected_option_id");
+            row.put("selectedOptionId", rs.wasNull() ? null : selectedOptionId);
+            row.put("selectedOptionText", rs.getString("selected_option_text"));
+            int correctOptionId = rs.getInt("correct_option_id");
+            row.put("correctOptionId", rs.wasNull() ? null : correctOptionId);
+            row.put("correctOptionText", rs.getString("correct_option_text"));
+            row.put("isCorrect", rs.getBoolean("is_correct"));
+            row.put("answeredAt", rs.getObject("answered_at", LocalDateTime.class));
+            return row;
+        });
+    }
+
     public int calculateTestScore(int resultId) {
         Integer score = jdbc.queryForObject("""
             SELECT COALESCE(SUM(q.points), 0)
@@ -505,8 +542,8 @@ public class ResultRepository {
 
     public List<SituationalAnswerWithStudent> getSituationalAnswersWithStudents(int limit, int offset) {
         return jdbc.query("""
-            SELECT sa.id, sa.student_id, sa.task_id, sa.answer_text, COALESCE(sa.photo_file_id, ''), sa.submitted_at,
-                   sa.is_graded, sa.grade, COALESCE(sa.feedback, ''), sa.graded_by, sa.graded_at,
+            SELECT sa.id, sa.student_id, sa.task_id, sa.answer_text, COALESCE(sa.photo_file_id, '') as photo_file_id, sa.submitted_at,
+                   sa.is_graded, sa.grade, COALESCE(sa.feedback, '') as feedback, sa.graded_by, sa.graded_at,
                    s.full_name as student_name,
                    COALESCE(st.task_text, 'Vazifa o''chirilgan') as task_text,
                    COALESCE(l.title_uz, 'Dars o''chirilgan') as lesson_title,
@@ -613,8 +650,8 @@ public class ResultRepository {
         params.addValue("limit", limit).addValue("offset", offset);
 
         return jdbc.query("""
-            SELECT sa.id, sa.student_id, sa.task_id, sa.answer_text, COALESCE(sa.photo_file_id, ''), sa.submitted_at,
-                   sa.is_graded, sa.grade, COALESCE(sa.feedback, ''), sa.graded_by, sa.graded_at,
+            SELECT sa.id, sa.student_id, sa.task_id, sa.answer_text, COALESCE(sa.photo_file_id, '') as photo_file_id, sa.submitted_at,
+                   sa.is_graded, sa.grade, COALESCE(sa.feedback, '') as feedback, sa.graded_by, sa.graded_at,
                    s.full_name as student_name,
                    COALESCE(st.task_text, 'Vazifa o''chirilgan') as task_text,
                    COALESCE(l.title_uz, 'Dars o''chirilgan') as lesson_title,

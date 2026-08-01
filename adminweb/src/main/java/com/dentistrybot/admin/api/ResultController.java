@@ -39,6 +39,13 @@ public class ResultController {
         return ResponseEntity.ok(Map.of("results", results, "total", total, "page", page, "size", size));
     }
 
+    @GetMapping("/tests/{id}/answers")
+    public ResponseEntity<?> testResultAnswers(@PathVariable int id) {
+        var result = resultRepo.getTestResultById(id);
+        if (result == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(resultRepo.getTestAnswerDetailsByResultId(id));
+    }
+
     @GetMapping("/situational")
     public ResponseEntity<?> situationalResults(
             @RequestParam(defaultValue = "") String studentName,

@@ -17,6 +17,7 @@ interface SitResult {
   unitName: string
   answerText: string
   isGraded: boolean
+  graded?: boolean
   grade: number | null
   feedback: string
   submittedAt: string
@@ -25,6 +26,11 @@ interface SitResult {
 interface Unit { id: number; name: string; titleUz: string }
 interface Lesson { id: number; lessonNumber: number; titleUz: string }
 interface Task { id: number; taskText: string }
+
+const normalizeSitResult = (result: SitResult): SitResult => ({
+  ...result,
+  isGraded: result.isGraded ?? result.graded ?? false,
+})
 
 export default function SituationalPage() {
   const [data, setData] = useState<SitResult[]>([])
@@ -62,7 +68,7 @@ export default function SituationalPage() {
         lessonId: f.lessonId,
         taskId: f.taskId,
       })
-      setData(res.data.results)
+      setData(res.data.results.map(normalizeSitResult))
       setTotal(res.data.total)
     } finally {
       setLoading(false)
@@ -119,7 +125,7 @@ export default function SituationalPage() {
 
   const openView = async (item: SitResult) => {
     const res = await getSituationalAnswer(item.id)
-    setViewModal({ open: true, item: { ...item, ...res.data } })
+    setViewModal({ open: true, item: normalizeSitResult({ ...item, ...res.data }) })
   }
 
   const handleAiGrade = async () => {
