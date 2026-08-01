@@ -44,7 +44,7 @@ public class AdminRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             admin.setId((Integer) keys.get("id"));
-            admin.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            admin.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return admin;
     }

@@ -89,7 +89,7 @@ public class TestRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             test.setId((Integer) keys.get("id"));
-            test.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            test.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return test;
     }
@@ -169,7 +169,7 @@ public class TestRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             question.setId((Integer) keys.get("id"));
-            question.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            question.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         updateTestTotalPoints(question.getTestId());
         return question;

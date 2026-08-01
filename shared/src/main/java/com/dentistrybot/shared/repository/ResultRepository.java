@@ -458,7 +458,7 @@ public class ResultRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             retake.setId((Integer) keys.get("id"));
-            retake.setGrantedAt((LocalDateTime) keys.get("granted_at"));
+            retake.setGrantedAt(JdbcTimeUtils.toLocalDateTime(keys.get("granted_at")));
         }
         return retake;
     }
@@ -688,7 +688,7 @@ public class ResultRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             retake.setId((Integer) keys.get("id"));
-            retake.setGrantedAt((LocalDateTime) keys.get("granted_at"));
+            retake.setGrantedAt(JdbcTimeUtils.toLocalDateTime(keys.get("granted_at")));
         }
         return retake;
     }

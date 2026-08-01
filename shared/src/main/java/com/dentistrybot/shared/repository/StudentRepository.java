@@ -54,8 +54,8 @@ public class StudentRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             student.setId((Integer) keys.get("id"));
-            student.setCreatedAt((LocalDateTime) keys.get("created_at"));
-            student.setUpdatedAt((LocalDateTime) keys.get("updated_at"));
+            student.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
+            student.setUpdatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("updated_at")));
         }
         return student;
     }

@@ -95,7 +95,7 @@ public class LessonRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             unit.setId((Integer) keys.get("id"));
-            unit.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            unit.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return unit;
     }
@@ -147,7 +147,7 @@ public class LessonRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             lesson.setId((Integer) keys.get("id"));
-            lesson.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            lesson.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return lesson;
     }
@@ -214,7 +214,7 @@ public class LessonRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             material.setId((Integer) keys.get("id"));
-            material.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            material.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return material;
     }
@@ -285,7 +285,7 @@ public class LessonRepository {
         var keys = keyHolder.getKeys();
         if (keys != null) {
             task.setId((Integer) keys.get("id"));
-            task.setCreatedAt((LocalDateTime) keys.get("created_at"));
+            task.setCreatedAt(JdbcTimeUtils.toLocalDateTime(keys.get("created_at")));
         }
         return task;
     }

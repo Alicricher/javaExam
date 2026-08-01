@@ -552,7 +552,7 @@ function TestTab({ lesson }: { lesson: Lesson }) {
 
       <Modal title="Savol qo'shish" open={questionModal} confirmLoading={saving === 'question'} onOk={handleCreateQuestion} onCancel={() => { setQuestionModal(false); questionForm.resetFields() }} okText="Saqlash" width={760}>
         <Form form={questionForm} layout="vertical">
-          <Form.Item name="questionText" label="Savol matni" rules={[{ required: true }]}><Input.TextArea rows={3} /></Form.Item>
+          <Form.Item name="questionText" label="Savol matni" rules={[{ required: true }]}><Input.TextArea autoSize={{ minRows: 6, maxRows: 16 }} /></Form.Item>
           <Form.Item name="points" label="Ball" rules={[{ required: true }]}><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
           <Form.Item name="correct" label="To'g'ri javob" rules={[{ required: true }]}>
             <Select options={['A', 'B', 'C', 'D', 'E'].map(v => ({ value: v, label: v }))} />
@@ -610,7 +610,7 @@ function QuestionEditor({ question, onUpdate }: { question: QuestionWithOptions;
     <div style={{ border: '1px solid #e8e8e8', borderRadius: 6, padding: 12, minWidth: 0 }}>
       <Space style={{ marginBottom: 8 }}><Tag>ID: {question.id}</Tag><Tag>#{question.orderNum}</Tag></Space>
       <Form form={form} layout="vertical">
-        <Form.Item name="questionText" label="Savol matni"><Input.TextArea rows={3} /></Form.Item>
+        <Form.Item name="questionText" label="Savol matni"><Input.TextArea autoSize={{ minRows: 6, maxRows: 16 }} /></Form.Item>
         <Form.Item name="points" label="Ball"><InputNumber min={1} /></Form.Item>
         <Button type="primary" size="small" loading={saving} onClick={save}>Saqlash</Button>
       </Form>
@@ -860,11 +860,11 @@ function TasksTab({ lesson }: { lesson: Lesson }) {
         ]}
       />
 
-      <Modal title={modal.task ? 'Topshiriqni tahrirlash' : 'Topshiriq yaratish'}
+      <Modal title={modal.task ? 'Topshiriqni tahrirlash' : 'Topshiriq yaratish'} width={720}
         open={modal.open} confirmLoading={saving === 'submit'} onOk={handleSubmit} onCancel={() => setModal({ open: false, task: null })} okText="Saqlash">
         <Form form={form} layout="vertical">
           <Form.Item name="taskText" label="Topshiriq matni" rules={[{ required: true }]}>
-            <Input.TextArea rows={4} />
+            <Input.TextArea autoSize={{ minRows: 8, maxRows: 20 }} />
           </Form.Item>
           <Form.Item name="timeLimitMinutes" label="Vaqt chegarasi (daqiqa)" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
