@@ -17,9 +17,11 @@ public class AppProperties {
     public static class Grading {
         private String apiUrl = "https://api.openai.com/v1";
         private String apiKey = "";
-        private String model = "gpt-4o";
+        private String model = "gpt-5.6-terra";
         private String promptFile = "configs/grading_prompt.txt";
         private String lessonPromptsDir = "configs/grading";
+        private String vectorStoreForeign = "";
+        private String vectorStoreLocal = "";
 
         public String getApiUrl() { return apiUrl; }
         public void setApiUrl(String apiUrl) { this.apiUrl = apiUrl; }
@@ -35,6 +37,12 @@ public class AppProperties {
 
         public String getLessonPromptsDir() { return lessonPromptsDir; }
         public void setLessonPromptsDir(String lessonPromptsDir) { this.lessonPromptsDir = lessonPromptsDir; }
+
+        public String getVectorStoreForeign() { return vectorStoreForeign; }
+        public void setVectorStoreForeign(String vectorStoreForeign) { this.vectorStoreForeign = vectorStoreForeign; }
+
+        public String getVectorStoreLocal() { return vectorStoreLocal; }
+        public void setVectorStoreLocal(String vectorStoreLocal) { this.vectorStoreLocal = vectorStoreLocal; }
     }
 
     public static class Dispatcher {

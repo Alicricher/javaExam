@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Table, Input, Button, Space, Tag, Modal, Form, InputNumber, Typography, message, Select, Card, Statistic } from 'antd'
-import { SearchOutlined, RobotOutlined, EditOutlined } from '@ant-design/icons'
+import { Table, Input, Button, Space, Tag, Modal, Form, InputNumber, Typography, message, Select, Card, Statistic, Divider, List } from 'antd'
+import { SearchOutlined, RobotOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons'
 import {
   getSituationalResults, getSituationalAnswer, gradeAnswer,
   getUnits, getUnitLessons, getLessonTasks,
@@ -27,10 +27,46 @@ interface Unit { id: number; name: string; titleUz: string }
 interface Lesson { id: number; lessonNumber: number; titleUz: string }
 interface Task { id: number; taskText: string }
 
+interface AiBlock {
+  grade: number
+  feedback: string
+  passed: boolean
+  criteria: { name: string; points: number; comment: string }[]
+  citations: string[]
+  confidence: 'high' | 'medium' | 'low'
+  sourceGap: boolean
+}
+
 const normalizeSitResult = (result: SitResult): SitResult => ({
   ...result,
   isGraded: result.isGraded ?? result.graded ?? false,
 })
+
+function AiBlockCard({ title, block, onUse }: { title: string; block: AiBlock; onUse: (b: AiBlock) => void }) {
+  const confidenceColor = block.confidence === 'high' ? 'green' : block.confidence === 'medium' ? 'orange' : 'red'
+  return (
+    <Card size="small" title={title} style={{ minWidth: 0 }}
+      extra={<Button size="small" icon={<CheckOutlined />} onClick={() => onUse(block)}>Ishlatish</Button>}>
+      <Space wrap style={{ marginBottom: 8 }}>
+        <Tag color={block.passed ? 'green' : 'red'}>{block.grade}/100</Tag>
+        <Tag color={confidenceColor}>ishonch: {block.confidence}</Tag>
+        {block.sourceGap && <Tag color="gold">manbada topilmagan</Tag>}
+      </Space>
+      <Paragraph style={{ marginBottom: 8 }}>{block.feedback}</Paragraph>
+      {block.criteria?.length > 0 && (
+        <List size="small" dataSource={block.criteria}
+          renderItem={c => <List.Item style={{ padding: '4px 0' }}>
+            <Text strong>{c.name}</Text> ({c.points}): <Text type="secondary">{c.comment}</Text>
+          </List.Item>} />
+      )}
+      {block.citations?.length > 0 && (
+        <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+          Manbalar: {block.citations.join(', ')}
+        </Paragraph>
+      )}
+    </Card>
+  )
+}
 
 export default function SituationalPage() {
   const [data, setData] = useState<SitResult[]>([])
@@ -52,6 +88,7 @@ export default function SituationalPage() {
 
   const [viewModal, setViewModal] = useState<{ open: boolean; item: SitResult | null }>({ open: false, item: null })
   const [gradeModal, setGradeModal] = useState<{ open: boolean; id: number | null; aiLoading: boolean }>({ open: false, id: null, aiLoading: false })
+  const [aiResult, setAiResult] = useState<{ foreign: AiBlock; local: AiBlock } | null>(null)
   const [gradeForm] = Form.useForm()
 
   const load = async (p = page, f = filters) => {
@@ -132,21 +169,29 @@ export default function SituationalPage() {
     setGradeModal(m => ({ ...m, aiLoading: true }))
     try {
       const res = await gradeAnswer(gradeModal.id!, { mode: 'ai' })
-      message.success(`AI baho: ${res.data.grade}/100`)
-      setGradeModal({ open: false, id: null, aiLoading: false })
-      load()
+      setAiResult({ foreign: res.data.foreign, local: res.data.local })
     } catch {
       message.error('AI baholashda xatolik')
+    } finally {
       setGradeModal(m => ({ ...m, aiLoading: false }))
     }
+  }
+
+  const useAiBlock = (block: AiBlock) => {
+    gradeForm.setFieldsValue({ grade: block.grade, feedback: block.feedback })
+  }
+
+  const closeGradeModal = () => {
+    setGradeModal({ open: false, id: null, aiLoading: false })
+    setAiResult(null)
+    gradeForm.resetFields()
   }
 
   const handleManualGrade = async () => {
     const values = await gradeForm.validateFields()
     await gradeAnswer(gradeModal.id!, { mode: 'manual', grade: values.grade, feedback: values.feedback })
     message.success('Baho saqlandi')
-    setGradeModal({ open: false, id: null, aiLoading: false })
-    gradeForm.resetFields()
+    closeGradeModal()
     load()
   }
 
@@ -231,7 +276,7 @@ export default function SituationalPage() {
               <Space>
                 <Button size="small" onClick={() => openView(r)}>Ko'rish</Button>
                 <Button size="small" icon={<EditOutlined />}
-                  onClick={() => { setGradeModal({ open: true, id: r.id, aiLoading: false }); gradeForm.resetFields() }}>
+                  onClick={() => { setGradeModal({ open: true, id: r.id, aiLoading: false }); setAiResult(null); gradeForm.resetFields() }}>
                   Baholash
                 </Button>
               </Space>
@@ -259,16 +304,30 @@ export default function SituationalPage() {
       )}
       </Modal>
 
-      <Modal title="Baholash" open={gradeModal.open}
+      <Modal title="Baholash" open={gradeModal.open} width={720}
         footer={[
           <Button key="ai" type="primary" icon={<RobotOutlined />}
             loading={gradeModal.aiLoading} onClick={handleAiGrade}>
             AI bilan baholash
           </Button>,
-          <Button key="manual" onClick={handleManualGrade}>Qo'lda baholash</Button>,
-          <Button key="cancel" onClick={() => { setGradeModal({ open: false, id: null, aiLoading: false }); gradeForm.resetFields() }}>Bekor qilish</Button>,
+          <Button key="manual" onClick={handleManualGrade}>Qo'lda baholash (saqlash)</Button>,
+          <Button key="cancel" onClick={closeGradeModal}>Bekor qilish</Button>,
         ]}
-        onCancel={() => { setGradeModal({ open: false, id: null, aiLoading: false }); gradeForm.resetFields() }}>
+        onCancel={closeGradeModal}>
+        {aiResult && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <AiBlockCard title="Xalqaro manbalar (foreign)" block={aiResult.foreign} onUse={useAiBlock} />
+              <AiBlockCard title="Mahalliy manbalar (local)" block={aiResult.local} onUse={useAiBlock} />
+            </div>
+            <Paragraph type="secondary">
+              Har ikkala blok — taklif. Mos keladiganini "Ishlatish" bilan pastdagi formaga
+              o'tkazing (yoki qo'lda tahrirlang), so'ng "Qo'lda baholash (saqlash)" bosing —
+              faqat shu bosqichda baho saqlanadi.
+            </Paragraph>
+            <Divider />
+          </>
+        )}
         <Form form={gradeForm} layout="vertical">
           <Form.Item name="grade" label="Ball (0-100)" rules={[{ required: true, type: 'number', min: 0, max: 100 }]}>
             <InputNumber min={0} max={100} style={{ width: '100%' }} />

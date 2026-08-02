@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Table, Input, Select, Button, Space, Modal, Form, message, Typography, Tag, Tooltip, AutoComplete,
+  Table, Input, Select, Button, Space, Modal, Form, message, Typography, Tag, Tooltip, AutoComplete, Popconfirm,
 } from 'antd'
 import { SearchOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons'
 import {
@@ -288,8 +288,16 @@ export default function StudentsPage() {
       </Modal>
 
       <Modal title="Qayta topshirish berish" open={retakeModal.open}
-        confirmLoading={saving === 'retake'}
-        onOk={submitRetake} onCancel={() => { setRetakeModal({ open: false, student: null }); retakeForm.resetFields() }}>
+        onCancel={() => { setRetakeModal({ open: false, student: null }); retakeForm.resetFields() }}
+        footer={[
+          <Button key="cancel" onClick={() => { setRetakeModal({ open: false, student: null }); retakeForm.resetFields() }}>
+            Bekor qilish
+          </Button>,
+          <Popconfirm key="confirm" title="Qayta topshirish berishni tasdiqlaysizmi?"
+            onConfirm={submitRetake} okText="Ha" cancelText="Yo'q">
+            <Button type="primary" loading={saving === 'retake'}>Berish</Button>
+          </Popconfirm>,
+        ]}>
         <Text type="secondary">
           Hozircha test yoki topshiriq ID raqamini kiriting. ID ni kontent bo'limidagi jadvaldan ko'rish mumkin.
         </Text>

@@ -38,7 +38,7 @@ public class UnitController {
         if (name == null || titleUz == null || name.isBlank() || titleUz.isBlank())
             return ResponseEntity.badRequest().body(Map.of("error", "name and titleUz required"));
         if (name.trim().length() > MAX_NAME_LENGTH)
-            return ResponseEntity.badRequest().body(Map.of("error", "name must be at most " + MAX_NAME_LENGTH + " characters"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Kod " + MAX_NAME_LENGTH + " ta belgidan oshmasligi kerak"));
         if (lessonRepo.checkUnitNameExists(name.trim(), -1))
             return ResponseEntity.badRequest().body(Map.of("error", "Unit name already exists"));
         var unit = new Unit();
@@ -54,7 +54,7 @@ public class UnitController {
         String name = body.getOrDefault("name", u.getName());
         String titleUz = body.getOrDefault("titleUz", u.getTitleUz());
         if (name.trim().length() > MAX_NAME_LENGTH)
-            return ResponseEntity.badRequest().body(Map.of("error", "name must be at most " + MAX_NAME_LENGTH + " characters"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Kod " + MAX_NAME_LENGTH + " ta belgidan oshmasligi kerak"));
         if (!name.equals(u.getName()) && lessonRepo.checkUnitNameExists(name.trim(), id))
             return ResponseEntity.badRequest().body(Map.of("error", "Unit name already exists"));
         u.setName(name.trim().toUpperCase());

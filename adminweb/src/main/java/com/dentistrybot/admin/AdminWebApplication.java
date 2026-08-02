@@ -62,7 +62,12 @@ public class AdminWebApplication {
         } catch (IOException e) {
             log.warn("Could not read grading prompt file: {}", e.getMessage());
         }
-        GradingService gs = new GradingService(g.getApiUrl(), g.getApiKey(), g.getModel(), systemPrompt, objectMapper);
+        if (g.getVectorStoreForeign().isEmpty() || g.getVectorStoreLocal().isEmpty()) {
+            log.warn("grading: vector store IDs not configured — AI grading disabled");
+            return null;
+        }
+        GradingService gs = new GradingService(g.getApiUrl(), g.getApiKey(), g.getModel(), systemPrompt,
+            g.getVectorStoreForeign(), g.getVectorStoreLocal(), objectMapper);
         gs.loadLessonPrompts(g.getLessonPromptsDir());
         log.info("AI grading service initialized (model: {})", g.getModel());
         return gs;

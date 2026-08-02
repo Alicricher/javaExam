@@ -1,44 +1,92 @@
 package com.dentistrybot.shared.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+/**
+ * Оценивает ситуационные задачи через OpenAI Responses API с file_search
+ * по двум отдельным vector store (foreign/local, см. Этап 1-2 плана
+ * КИТОБЛАР) — каждый запрос идёт параллельно в оба хранилища, admin
+ * видит оба результата и решает, какой принять или поправить.
+ */
 public class GradingService {
 
     private static final Logger log = LoggerFactory.getLogger(GradingService.class);
-    private static final Pattern JSON_BLOCK = Pattern.compile("\\{[\\s\\S]*\\}");
+
+    private static final String GRADING_SCHEMA_JSON = """
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "grade": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "criteria": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string" },
+                  "points": { "type": "integer" },
+                  "comment": { "type": "string" }
+                },
+                "required": ["name", "points", "comment"]
+              }
+            },
+            "citations": { "type": "array", "items": { "type": "string" } },
+            "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+            "feedback": { "type": "string" },
+            "passed": { "type": "boolean" },
+            "source_gap": { "type": "boolean" }
+          },
+          "required": ["grade", "criteria", "citations", "confidence", "feedback", "passed", "source_gap"]
+        }
+        """;
 
     private final String apiKey;
     private final String model;
     private final String systemPrompt;
+    private final String vectorStoreForeign;
+    private final String vectorStoreLocal;
     private final Map<Integer, String> lessonPrompts = new HashMap<>();
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
+    private final Map<String, Object> gradingSchema;
 
-    public GradingService(String baseUrl, String apiKey, String model, String systemPrompt, ObjectMapper objectMapper) {
+    public GradingService(String baseUrl, String apiKey, String model, String systemPrompt,
+                           String vectorStoreForeign, String vectorStoreLocal, ObjectMapper objectMapper) {
         this.apiKey = apiKey;
         this.model = model;
         this.systemPrompt = systemPrompt;
+        this.vectorStoreForeign = vectorStoreForeign;
+        this.vectorStoreLocal = vectorStoreLocal;
         this.objectMapper = objectMapper;
         this.webClient = WebClient.builder()
             .baseUrl(baseUrl)
             .defaultHeader("Authorization", "Bearer " + apiKey)
             .defaultHeader("Content-Type", "application/json")
-            .codecs(c -> c.defaultCodecs().maxInMemorySize(1024 * 1024))
+            .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
             .build();
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> schema = objectMapper.readValue(GRADING_SCHEMA_JSON, Map.class);
+            this.gradingSchema = schema;
+        } catch (IOException e) {
+            throw new IllegalStateException("grading: failed to parse embedded JSON schema", e);
+        }
     }
 
     public void loadLessonPrompts(String dir) {
@@ -72,93 +120,188 @@ public class GradingService {
         return systemPrompt;
     }
 
-    public GradingResult gradeForLesson(int lessonId, String taskText, String answerText) {
+    public DualGradingResult gradeForLesson(int lessonId, String taskText, String answerText) {
         return gradeWithPrompt(buildSystemPrompt(lessonId), taskText, answerText);
     }
 
-    public GradingResult grade(String taskText, String answerText) {
+    public DualGradingResult grade(String taskText, String answerText) {
         return gradeWithPrompt(systemPrompt, taskText, answerText);
     }
 
-    private GradingResult gradeWithPrompt(String systemPromptText, String taskText, String answerText) {
+    private DualGradingResult gradeWithPrompt(String systemPromptText, String taskText, String answerText) {
         String userMsg = String.format(
-            "Vazifa:\n%s\n\nTalabaning javobi:\n%s\n\nFaqat JSON formatida javob ber:\n{\"grade\": <0-100>, \"feedback\": \"<o'zbek tilida 2-3 jumla>\", \"passed\": <true|false>}",
+            "[VAZIYATLI TOPSHIRIQ SHARTI]\n%s\n\n[TALABANING JAVOBI]\n%s\n",
             taskText, answerText);
 
-        Map<String, Object> requestBody = Map.of(
-            "model", model,
-            "messages", List.of(
-                Map.of("role", "system", "content", systemPromptText),
-                Map.of("role", "user", "content", userMsg)
-            )
-        );
+        Mono<GradingResult> foreignMono = callResponsesApi(systemPromptText, userMsg, vectorStoreForeign)
+            .doOnError(e -> log.error("grading: foreign store call failed: {}", e.getMessage()));
+        Mono<GradingResult> localMono = callResponsesApi(systemPromptText, userMsg, vectorStoreLocal)
+            .doOnError(e -> log.error("grading: local store call failed: {}", e.getMessage()));
 
         try {
-            String response = webClient.post()
-                .uri("/chat/completions")
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(60))
+            return Mono.zip(foreignMono, localMono)
+                .map(tuple -> new DualGradingResult(tuple.getT1(), tuple.getT2()))
+                .timeout(Duration.ofSeconds(90))
                 .block();
+        } catch (Exception e) {
+            throw new RuntimeException("grading: " + e.getMessage(), e);
+        }
+    }
 
-            if (response == null) throw new RuntimeException("grading: null response from API");
+    private Mono<GradingResult> callResponsesApi(String systemPromptText, String userMsg, String vectorStoreId) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", model);
+        requestBody.put("input", List.of(
+            Map.of("role", "developer", "content", systemPromptText),
+            Map.of("role", "user", "content", userMsg)
+        ));
+        requestBody.put("tools", List.of(
+            Map.of("type", "file_search", "vector_store_ids", List.of(vectorStoreId))
+        ));
+        requestBody.put("text", Map.of(
+            "format", Map.of(
+                "type", "json_schema",
+                "name", "grading_result",
+                "schema", gradingSchema,
+                "strict", true
+            )
+        ));
 
-            var chatResp = objectMapper.readTree(response);
+        return webClient.post()
+            .uri("/responses")
+            .bodyValue(requestBody)
+            .retrieve()
+            .bodyToMono(String.class)
+            .timeout(Duration.ofSeconds(60))
+            .map(this::parseResponsesApiResult);
+    }
 
-            var error = chatResp.get("error");
+    private GradingResult parseResponsesApiResult(String response) {
+        try {
+            JsonNode root = objectMapper.readTree(response);
+
+            JsonNode error = root.get("error");
             if (error != null && !error.isNull()) {
                 throw new RuntimeException("grading: API error: " + error.get("message").asText());
             }
 
-            var choices = chatResp.get("choices");
-            if (choices == null || choices.isEmpty()) {
-                throw new RuntimeException("grading: empty choices in response");
+            JsonNode output = root.get("output");
+            if (output == null || !output.isArray()) {
+                throw new RuntimeException("grading: no output array in response");
             }
 
-            String content = choices.get(0).get("message").get("content").asText();
+            JsonNode messageItem = null;
+            for (JsonNode item : output) {
+                if ("message".equals(item.path("type").asText())) {
+                    messageItem = item;
+                    break;
+                }
+            }
+            if (messageItem == null) {
+                throw new RuntimeException("grading: no message item in output: " + response);
+            }
 
-            GradingJson result;
-            try {
-                result = objectMapper.readValue(content, GradingJson.class);
-            } catch (Exception e) {
-                // Fallback: extract JSON block if model added surrounding text
-                Matcher matcher = JSON_BLOCK.matcher(content);
-                if (matcher.find()) {
-                    result = objectMapper.readValue(matcher.group(), GradingJson.class);
-                } else {
-                    throw new RuntimeException("grading: no JSON found in response: " + content);
+            JsonNode content0 = messageItem.get("content").get(0);
+            String jsonText = content0.get("text").asText();
+            GradingJson parsed = objectMapper.readValue(jsonText, GradingJson.class);
+
+            // Настоящие имена файлов берём из file_citation annotations самого
+            // API, а не из того, что модель сама вписала в JSON — самоотчёт
+            // модели ненадёжен (проверено эмпирически, см. КИТОБЛАР/test_grading.py).
+            List<String> realCitations = new ArrayList<>();
+            JsonNode annotations = content0.get("annotations");
+            if (annotations != null && annotations.isArray()) {
+                for (JsonNode ann : annotations) {
+                    if ("file_citation".equals(ann.path("type").asText())) {
+                        String filename = ann.path("filename").asText();
+                        if (!filename.isBlank() && !realCitations.contains(filename)) {
+                            realCitations.add(filename);
+                        }
+                    }
                 }
             }
 
-            int grade = Math.max(0, Math.min(100, result.grade));
-            return new GradingResult(grade, result.feedback, result.passed);
+            int grade = Math.max(0, Math.min(100, parsed.grade));
+            List<Criterion> criteria = parsed.criteria == null ? List.of() : parsed.criteria;
 
+            return new GradingResult(grade, parsed.feedback, parsed.passed, criteria,
+                realCitations, parsed.confidence, parsed.sourceGap);
+
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("grading: failed to grade answer: {}", e.getMessage());
-            throw new RuntimeException("grading: " + e.getMessage(), e);
+            throw new RuntimeException("grading: failed to parse response: " + e.getMessage(), e);
         }
     }
 
     private static class GradingJson {
         @JsonProperty("grade") int grade;
+        @JsonProperty("criteria") List<Criterion> criteria;
+        @JsonProperty("citations") List<String> citations;
+        @JsonProperty("confidence") String confidence;
         @JsonProperty("feedback") String feedback;
         @JsonProperty("passed") boolean passed;
+        @JsonProperty("source_gap") boolean sourceGap;
+    }
+
+    public static class Criterion {
+        @JsonProperty("name") private String name;
+        @JsonProperty("points") private int points;
+        @JsonProperty("comment") private String comment;
+
+        public Criterion() {}
+
+        public Criterion(String name, int points, String comment) {
+            this.name = name;
+            this.points = points;
+            this.comment = comment;
+        }
+
+        public String getName() { return name; }
+        public int getPoints() { return points; }
+        public String getComment() { return comment; }
     }
 
     public static class GradingResult {
         private final int grade;
         private final String feedback;
         private final boolean passed;
+        private final List<Criterion> criteria;
+        private final List<String> citations;
+        private final String confidence;
+        private final boolean sourceGap;
 
-        public GradingResult(int grade, String feedback, boolean passed) {
+        public GradingResult(int grade, String feedback, boolean passed, List<Criterion> criteria,
+                              List<String> citations, String confidence, boolean sourceGap) {
             this.grade = grade;
             this.feedback = feedback;
             this.passed = passed;
+            this.criteria = criteria;
+            this.citations = citations;
+            this.confidence = confidence;
+            this.sourceGap = sourceGap;
         }
 
         public int getGrade() { return grade; }
         public String getFeedback() { return feedback; }
         public boolean isPassed() { return passed; }
+        public List<Criterion> getCriteria() { return criteria; }
+        public List<String> getCitations() { return citations; }
+        public String getConfidence() { return confidence; }
+        public boolean isSourceGap() { return sourceGap; }
+    }
+
+    /** Результат двух параллельных вызовов — по иностранной и по локальной базе. */
+    public static class DualGradingResult {
+        private final GradingResult foreign;
+        private final GradingResult local;
+
+        public DualGradingResult(GradingResult foreign, GradingResult local) {
+            this.foreign = foreign;
+            this.local = local;
+        }
+
+        public GradingResult getForeign() { return foreign; }
+        public GradingResult getLocal() { return local; }
     }
 }

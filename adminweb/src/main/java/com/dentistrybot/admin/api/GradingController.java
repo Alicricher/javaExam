@@ -36,8 +36,6 @@ public class GradingController {
         if (answer == null) return ResponseEntity.notFound().build();
 
         String mode = (String) body.get("mode");
-        int grade;
-        String feedback;
 
         if ("ai".equals(mode)) {
             if (gradingService == null)
@@ -47,26 +45,42 @@ public class GradingController {
                 String taskText = task != null ? task.getTaskText() : "";
                 var lesson = task != null ? lessonRepo.getLessonById(task.getLessonId()) : null;
                 int lessonId = lesson != null ? lesson.getId() : 0;
-                GradingService.GradingResult result = lessonId > 0
+                GradingService.DualGradingResult result = lessonId > 0
                     ? gradingService.gradeForLesson(lessonId, taskText, answer.getAnswerText())
                     : gradingService.grade(taskText, answer.getAnswerText());
-                grade = result.getGrade();
-                feedback = result.getFeedback();
+                // AI-режим только показывает оба блока (foreign/local) — в БД
+                // ничего не пишем, пока админ не подтвердит через mode=manual.
+                return ResponseEntity.ok(Map.of(
+                    "foreign", toMap(result.getForeign()),
+                    "local", toMap(result.getLocal())
+                ));
             } catch (Exception e) {
                 return ResponseEntity.internalServerError().body(Map.of("error", "AI grading failed: " + e.getMessage()));
             }
         } else if ("manual".equals(mode)) {
             Object gradeObj = body.get("grade");
             if (gradeObj == null) return ResponseEntity.badRequest().body(Map.of("error", "grade required for manual mode"));
-            grade = Integer.parseInt(gradeObj.toString());
+            int grade = Integer.parseInt(gradeObj.toString());
             if (grade < 0 || grade > 100) return ResponseEntity.badRequest().body(Map.of("error", "grade must be 0-100"));
-            feedback = body.containsKey("feedback") ? (String) body.get("feedback") : "";
+            String feedback = body.containsKey("feedback") ? (String) body.get("feedback") : "";
+
+            resultRepo.gradeSituationalAnswer(id, grade, feedback != null ? feedback : "", null);
+            notificationService.notifySituationalGraded(id);
+            return ResponseEntity.ok(Map.of("grade", grade, "feedback", feedback, "passed", grade >= 60));
         } else {
             return ResponseEntity.badRequest().body(Map.of("error", "mode must be 'ai' or 'manual'"));
         }
+    }
 
-        resultRepo.gradeSituationalAnswer(id, grade, feedback != null ? feedback : "", null);
-        notificationService.notifySituationalGraded(id);
-        return ResponseEntity.ok(Map.of("grade", grade, "feedback", feedback, "passed", grade >= 60));
+    private Map<String, Object> toMap(GradingService.GradingResult r) {
+        Map<String, Object> m = new java.util.HashMap<>();
+        m.put("grade", r.getGrade());
+        m.put("feedback", r.getFeedback());
+        m.put("passed", r.isPassed());
+        m.put("criteria", r.getCriteria());
+        m.put("citations", r.getCitations());
+        m.put("confidence", r.getConfidence());
+        m.put("sourceGap", r.isSourceGap());
+        return m;
     }
 }
