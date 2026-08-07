@@ -6,8 +6,13 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tgbot}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tgbot123}
       POSTGRES_DB: ${POSTGRES_DB:-dentistry_bot}
-    ports:
-      - "5432:5432"
+    # Порт наружу не публикуем: adminweb/studentbot ходят к базе через внутреннюю
+    # docker-сеть по имени "postgres:5432". Публичный "5432:5432" открывал порт
+    # всему интернету и ловил постоянное автосканирование (см. Logs.txt).
+    # Если нужен доступ с самого сервера для отладки — раскомментируй строку ниже,
+    # она слушает только localhost сервера, не интернет:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

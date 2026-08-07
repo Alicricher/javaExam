@@ -1,0 +1,209 @@
+2026-08-07T19:17:45.554+05:00  INFO 1 --- [           main] c.d.student.StudentBotApplication        : Starting StudentBotApplication v1.0.0 using Java 21.0.11 with PID 1 (/app/app.jar started by root in /app)
+tgbot-postgres  | 2026-08-05 23:10:07.025 UTC [92947] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-05 23:11:36.006 UTC [93068] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-05 23:11:36.006 UTC [93068] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-05 23:13:05.848 UTC [93196] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-05 23:13:05.848 UTC [93196] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-05 23:14:33.945 UTC [93317] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-05 23:14:33.945 UTC [93317] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 01:34:50.950 UTC [105171] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 02:22:50.952 UTC [109226] LOG:  could not receive data from client: Connection reset by peer
+tgbot-postgres  | 2026-08-06 02:22:59.586 UTC [109241] LOG:  could not receive data from client: Connection reset by peer
+tgbot-postgres  | 2026-08-06 10:44:49.249 UTC [151497] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 10:44:49.249 UTC [151497] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 10:44:49.438 UTC [151498] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 10:44:49.438 UTC [151498] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 10:44:49.605 UTC [151499] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 10:44:49.605 UTC [151499] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 12:26:32.045 UTC [25] LOG:  checkpoint starting: time
+tgbot-postgres  | 2026-08-06 12:26:32.260 UTC [25] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.203 s, sync=0.005 s, total=0.216 s; sync files=3, longest=0.003 s, average=0.002 s; distance=3 kB, estimate=3 kB; lsn=0/1A4B7F0, redo lsn=0/1A4B7B8
+tgbot-postgres  | 2026-08-06 13:54:23.164 UTC [167474] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 13:54:23.187 UTC [167482] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 13:54:23.210 UTC [167483] FATAL:  unsupported frontend protocol 65363.19778: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 15:02:35.244 UTC [173240] FATAL:  password authentication failed for user "pgg_superadmins"
+tgbot-postgres  | 2026-08-06 15:02:35.244 UTC [173240] DETAIL:  Role "pgg_superadmins" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 15:02:35.252 UTC [173243] FATAL:  password authentication failed for user "wog"
+tgbot-postgres  | 2026-08-06 15:02:35.252 UTC [173243] DETAIL:  Role "wog" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 15:02:35.259 UTC [173244] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 15:02:35.259 UTC [173244] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 15:02:45.923 UTC [173239] FATAL:  password authentication failed for user "pgg_superadmins"
+tgbot-postgres  | 2026-08-06 15:02:45.923 UTC [173239] DETAIL:  Role "pgg_superadmins" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 15:02:45.931 UTC [173241] FATAL:  password authentication failed for user "pgg_superadmins"
+tgbot-postgres  | 2026-08-06 15:02:45.931 UTC [173241] DETAIL:  Role "pgg_superadmins" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 15:02:45.940 UTC [173242] FATAL:  password authentication failed for user "wog"
+tgbot-postgres  | 2026-08-06 15:02:45.940 UTC [173242] DETAIL:  Role "wog" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 16:43:33.309 UTC [181770] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 16:43:33.666 UTC [181771] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-student   | 2026-08-07T19:17:45.580+05:00  INFO 1 --- [           main] c.d.student.StudentBotApplication        : No active profile set, falling back to 1 default profile: "default"
+tgbot-student   | 2026-08-07T19:17:52.021+05:00  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+tgbot-student   | 2026-08-07T19:17:52.888+05:00  INFO 1 --- [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@e91b4f4
+tgbot-student   | 2026-08-07T19:17:52.894+05:00  INFO 1 --- [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+tgbot-student   | 2026-08-07T19:17:53.064+05:00  INFO 1 --- [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://postgres:5432/dentistry_bot (PostgreSQL 16.14)
+tgbot-postgres  | 2026-08-06 16:43:34.026 UTC [181772] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-student   | 2026-08-07T19:17:53.447+05:00  INFO 1 --- [           main] o.f.core.internal.command.DbValidate     : Successfully validated 8 migrations (execution time 00:00.236s)
+tgbot-student   | 2026-08-07T19:17:53.528+05:00  INFO 1 --- [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 8
+tgbot-student   | 2026-08-07T19:17:53.557+05:00  INFO 1 --- [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+tgbot-student   | 2026-08-07T19:17:57.177+05:00  INFO 1 --- [           main] o.s.b.web.embedded.netty.NettyWebServer  : Netty started on port 8080 (http)
+tgbot-student   | 2026-08-07T19:17:57.210+05:00  INFO 1 --- [           main] c.d.student.StudentBotApplication        : Started StudentBotApplication in 13.876 seconds (process running for 17.009)
+tgbot-student   | 2026-08-07T19:17:57.969+05:00  INFO 1 --- [           main] o.t.telegrambots.longpolling.BotSession  : Result when calling deleteWebhook: true
+tgbot-postgres  | 2026-08-06 16:52:39.505 UTC [182543] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 16:52:39.505 UTC [182543] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 16:52:39.763 UTC [182544] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 16:52:39.763 UTC [182544] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 16:52:39.877 UTC [182545] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 16:52:39.877 UTC [182545] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 18:14:49.577 UTC [189483] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 18:14:53.540 UTC [189491] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 18:14:54.722 UTC [189498] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-06 18:59:27.667 UTC [193267] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 18:59:29.791 UTC [193268] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 19:00:34.129 UTC [193360] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 19:01:55.008 UTC [193476] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 19:01:55.242 UTC [193477] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 19:01:55.476 UTC [193478] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-06 19:02:30.192 UTC [193528] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:32:33.809 UTC [201121] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 20:32:33.809 UTC [201121] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 20:32:34.252 UTC [201122] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 20:32:34.252 UTC [201122] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 20:32:34.594 UTC [201123] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-06 20:32:34.594 UTC [201123] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-06 20:40:09.995 UTC [201761] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:10.029 UTC [201769] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:10.104 UTC [201770] FATAL:  unsupported frontend protocol 65363.19778: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 20:40:24.207 UTC [201780] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:24.393 UTC [201795] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:28.868 UTC [201796] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:39.506 UTC [201820] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:39.518 UTC [201821] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:39.565 UTC [201823] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 20:40:39.577 UTC [201824] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-06 23:42:37.825 UTC [217162] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 23:42:38.183 UTC [217163] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-06 23:42:38.529 UTC [217164] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 00:33:00.519 UTC [221411] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 00:33:00.568 UTC [221412] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 00:33:00.610 UTC [221413] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 00:45:05.035 UTC [222428] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:45:05.035 UTC [222428] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:46:41.549 UTC [222564] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:46:41.549 UTC [222564] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:48:15.531 UTC [222695] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:48:15.531 UTC [222695] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:49:50.171 UTC [222834] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:49:50.171 UTC [222834] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:51:23.872 UTC [222962] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:51:23.872 UTC [222962] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:52:58.201 UTC [223098] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:52:58.201 UTC [223098] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:54:32.059 UTC [223235] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:54:32.059 UTC [223235] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:56:04.769 UTC [223365] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:56:04.769 UTC [223365] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:57:39.003 UTC [223493] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:57:39.003 UTC [223493] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 00:59:11.711 UTC [223632] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 00:59:11.711 UTC [223632] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 01:00:44.485 UTC [223760] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 01:00:44.485 UTC [223760] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 01:02:18.912 UTC [223896] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 01:02:18.912 UTC [223896] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 01:03:52.372 UTC [224023] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 01:03:52.372 UTC [224023] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 01:05:26.172 UTC [224155] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 01:05:26.172 UTC [224155] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 03:28:52.612 UTC [236263] FATAL:  unsupported frontend protocol 16.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 05:03:45.869 UTC [244275] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 05:03:46.207 UTC [244276] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 05:03:46.545 UTC [244277] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 06:19:39.091 UTC [250701] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 06:19:40.291 UTC [250702] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 06:19:41.308 UTC [250703] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 06:56:49.169 UTC [253840] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 06:56:50.937 UTC [253842] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 06:56:52.426 UTC [253849] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 07:42:01.159 UTC [257655] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-07 08:28:10.474 UTC [261545] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-07 08:34:58.971 UTC [262124] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 08:34:59.325 UTC [262125] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 08:34:59.624 UTC [262126] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 10:22:00.877 UTC [271163] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 10:22:01.409 UTC [271164] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 10:22:01.922 UTC [271165] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 12:16:56.786 UTC [25] LOG:  checkpoint starting: time
+tgbot-postgres  | 2026-08-07 12:16:57.007 UTC [25] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.203 s, sync=0.007 s, total=0.222 s; sync files=3, longest=0.004 s, average=0.003 s; distance=3 kB, estimate=3 kB; lsn=0/1A4C630, redo lsn=0/1A4C5F8
+tgbot-postgres  | 2026-08-07 12:45:31.061 UTC [283271] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-07 12:45:31.307 UTC [283279] LOG:  invalid length of startup packet
+tgbot-postgres  | 2026-08-07 13:15:09.768 UTC [285779] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 13:15:09.768 UTC [285779] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 13:15:10.032 UTC [285780] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 13:15:10.032 UTC [285780] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 13:15:10.374 UTC [285781] FATAL:  password authentication failed for user "postgres"
+tgbot-postgres  | 2026-08-07 13:15:10.374 UTC [285781] DETAIL:  Role "postgres" does not exist.
+tgbot-postgres  |       Connection matched file "/var/lib/postgresql/data/pg_hba.conf" line 128: "host all all all scram-sha-256"
+tgbot-postgres  | 2026-08-07 14:17:15.986 UTC [1] LOG:  received fast shutdown request
+tgbot-postgres  | 2026-08-07 14:17:15.989 UTC [1] LOG:  aborting any active transactions
+tgbot-postgres  | 2026-08-07 14:17:15.989 UTC [290190] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:15.990 UTC [290505] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:15.992 UTC [290154] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:15.997 UTC [290048] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:15.999 UTC [289803] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.010 UTC [290350] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.019 UTC [290290] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.021 UTC [290268] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.043 UTC [290033] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.050 UTC [289896] FATAL:  terminating connection due to administrator command
+tgbot-postgres  | 2026-08-07 14:17:16.071 UTC [1] LOG:  background worker "logical replication launcher" (PID 30) exited with exit code 1
+tgbot-postgres  | 2026-08-07 14:17:16.085 UTC [25] LOG:  shutting down
+tgbot-postgres  | 2026-08-07 14:17:16.090 UTC [25] LOG:  checkpoint starting: shutdown immediate
+tgbot-postgres  | 2026-08-07 14:17:16.099 UTC [25] LOG:  checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.014 s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB, estimate=3 kB; lsn=0/1A4C6E0, redo lsn=0/1A4C6E0
+tgbot-postgres  | 2026-08-07 14:17:16.118 UTC [1] LOG:  database system is shut down
+tgbot-postgres  |
+tgbot-postgres  | PostgreSQL Database directory appears to contain a database; Skipping initialization
+tgbot-postgres  |
+tgbot-postgres  | 2026-08-07 14:17:40.403 UTC [1] LOG:  starting PostgreSQL 16.14 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+tgbot-postgres  | 2026-08-07 14:17:40.403 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+tgbot-postgres  | 2026-08-07 14:17:40.403 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+tgbot-postgres  | 2026-08-07 14:17:40.410 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+tgbot-postgres  | 2026-08-07 14:17:40.416 UTC [27] LOG:  database system was shut down at 2026-08-07 14:17:16 UTC
+tgbot-postgres  | 2026-08-07 14:17:40.437 UTC [1] LOG:  database system is ready to accept connections
+tgbot-postgres  | 2026-08-07 14:19:52.978 UTC [226] FATAL:  unsupported frontend protocol 0.0: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 14:19:53.026 UTC [227] FATAL:  unsupported frontend protocol 255.255: server supports 3.0 to 3.0
+tgbot-postgres  | 2026-08-07 14:19:53.067 UTC [228] FATAL:  no PostgreSQL user name specified in startup packet
+tgbot-postgres  | 2026-08-07 14:22:40.515 UTC [25] LOG:  checkpoint starting: time
+tgbot-postgres  | 2026-08-07 14:22:40.527 UTC [25] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.003 s, sync=0.004 s, total=0.013 s; sync files=2, longest=0.002 s, average=0.002 s; distance=0 kB, estimate=0 kB; lsn=0/1A4C7C8, redo lsn=0/1A4C790
