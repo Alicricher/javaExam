@@ -23,6 +23,10 @@ studentbot -am`, 65 тестов, все зелёные): `TestHandler` (12), `R
 | Выдача пересдачи без подтверждения | `StudentsPage.tsx` → модалка "Qayta topshirish berish" | Исправлено — добавлен Popconfirm, как на `TestResultsPage.tsx`. Проверено в браузере. |
 | Ошибка валидации на английском вместо узбекского ("name must be at most 10 characters") | `UnitController.create()`/`update()` — сырой английский message, фронтенд не переводит | **Исправлено** — заменено на `"Kod " + MAX_NAME_LENGTH + " ta belgidan oshmasligi kerak"` в обоих местах (create+update). Проверено через прямой DOM-мониторинг: `.ant-message-error` теперь содержит узбекский текст. Остальные `Map.of("error", ...)` в других контроллерах (Grading/Student/Theory/Test/Task/Auth/Lesson) всё ещё на английском — тот же класс бага, но за рамками этого фикса (широкий рефактор, не запрашивался). |
 | **Неверный пароль на логине не показывал никакой ошибки, страница "зависала"** | `client.ts` — глобальный axios-interceptor на любой 401 делал `window.location.href = '/login'`, включая 401 от самого `/auth/login`. Из-за этого страница перезагружалась раньше, чем успевал отрендериться `message.error`, и админ вообще не понимал, что пароль неверный. | **Исправлено** — interceptor теперь пропускает редирект для запроса `/auth/login` (это ожидаемый 401 "неверные данные", а не "сессия истекла"). Проверено через прямой DOM-мониторинг: тост `"Login yoki parol noto'g'ri"` теперь стабильно появляется. |
+| **Открыт публичный порт Postgres на проде + слабый дефолтный пароль** | `docker-compose.yml` (`postgres.ports: 5432:5432`), `.env` (`POSTGRES_PASSWORD`) | **Исправлено** — публикация порта убрана (сервисы уже в одной docker-сети, наружу порт не нужен), пользователю сказано сменить пароль в уже поднятой БД через `ALTER USER` (переменная окружения задним числом не меняет пароль у уже инициализированной роли) и ротировать засвеченный OpenAI-ключ. |
+| **AI-грейдинг отключался в проде** ("grading: vector store IDs not configured") | `AdminWebApplication.java` guard + отсутствующие `GRADING_VECTOR_STORE_FOREIGN`/`GRADING_VECTOR_STORE_LOCAL` в серверном `.env` | Диагностировано по логам, пользователю переданы точные значения из локального `.env` для прописывания на сервере. |
+| **"Qolgan vaqt: 324:59" — таймер теста показывал абсурдные значения** | `TestHandler.java` — `startedAt` (локальное время сервера `Asia/Tashkent`, UTC+5) конвертировалось через `.toInstant(ZoneOffset.UTC)`, что сдвигало отсчёт на 5 часов | **Исправлено** — `.atZone(ZoneId.systemDefault()).toInstant()` вместо `.toInstant(ZoneOffset.UTC)`. Проверено `mvn test -pl shared,studentbot -am` (проходит), логика подтверждена арифметикой (324 ≈ 25 мин лимит + 300 мин = 5 ч сдвиг) и сверкой с `ENV TZ=Asia/Tashkent` в обоих Dockerfile. |
+| **В детализации результатов теста текст вопроса/ответа обрезался** | `TestResultsPage.tsx` — колонки `Savol`/`Talaba javobi`/`To'g'ri javob` были с `ellipsis: true` и без возможности посмотреть полный текст | **Исправлено** — убран `ellipsis`, текст рендерится с `white-space: pre-wrap; word-break: break-word` (полный перенос по словам вместо обрезки), модалка расширена до 1100px. |
 
 Все четыре фикса требуют пересборки `adminweb`, чтобы попасть в уже поднятые контейнеры
 (`docker compose build --no-cache adminweb && docker compose up -d adminweb`). **Важно**:
@@ -77,9 +81,19 @@ studentbot -am`, 65 тестов, все зелёные): `TestHandler` (12), `R
       talaba javobi / to'g'ri javob / natija
 - [x] Выдача пересдачи — Popconfirm работает, отмена не отправляет запрос
 
-**Vaziyatli topshiriqlar** — ✅ пройдено ещё в прошлой сессии
-- [x] AI-грейдинг: оба блока реально приходят, "Ishlatish" переносит в форму
-- [x] До явного сохранения ничего не пишется в БД — проверено на уровне БД напрямую
+**Vaziyatli topshiriqlar** — архитектура AI-грейдинга переделана в этой сессии (см. ниже),
+ручной прогон в браузере после переделки ещё предстоит
+- [x] AI-грейдинг переделан: раньше было два параллельных вызова (foreign/local) и два блока
+  с кнопкой "Ishlatish" на выбор — админ явно просил один синтезированный ответ. Теперь один
+  вызов `file_search` сразу по обоим vector store, один грейд+фидбек, при клике "AI bilan
+  baholash" форма (Ball/Izoh) заполняется автоматически, ниже — информационная панель
+  (критерии/цитаты/confidence/source_gap) для прозрачности. Explicit "Qo'lda baholash
+  (saqlash)" остаётся единственным способом реально записать оценку в БД.
+  Backend (`GradingService`, `GradingController`) + тесты (`GradingControllerTest`, 8/8 зелёные)
+  + frontend (`SituationalPage.tsx`, `npx tsc --noEmit` + `vitest run` зелёные) готовы.
+  Живая проверка в браузере (реальный AI-вызов через OpenAI) — не проводилась в этом заходе.
+- [x] До явного сохранения ничего не пишется в БД — проверено на уровне контроллер-теста
+  (`verify(resultRepo, never()).gradeSituationalAnswer(...)` в AI-режиме)
 - [x] Ручная оценка сохраняется корректно, показывает "Baholangan N/100"
 - [ ] Grade вне диапазона 0-100 → не перепроверялось в этом заходе (проверялось раньше на backend-тестах)
 

@@ -275,7 +275,7 @@ export default function TestResultsPage() {
       />
 
       <Modal title="Test natijasi" open={!!selected} footer={null}
-        onCancel={() => { setSelected(null); setAnswerDetails([]) }} width={920}>
+        onCancel={() => { setSelected(null); setAnswerDetails([]) }} width={1100}>
         {selected && (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Descriptions bordered size="small" column={1}>
@@ -298,17 +298,24 @@ export default function TestResultsPage() {
               loading={answersLoading}
               dataSource={answerDetails}
               pagination={false}
-              scroll={{ x: 820 }}
+              scroll={{ x: 960 }}
               columns={[
                 { title: '#', dataIndex: 'orderNum', width: 58 },
-                { title: 'Savol', dataIndex: 'questionText', width: 260, ellipsis: true },
                 {
-                  title: 'Talaba javobi', dataIndex: 'selectedOptionText', width: 220,
-                  render: (v: string | null) => v || <Text type="secondary">Javob berilmagan</Text>,
+                  title: 'Savol', dataIndex: 'questionText', width: 280,
+                  render: (v: string) => <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>,
                 },
                 {
-                  title: "To'g'ri javob", dataIndex: 'correctOptionText', width: 220,
-                  render: (v: string | null) => v || '-',
+                  title: 'Talaba javobi', dataIndex: 'selectedOptionText', width: 240,
+                  render: (v: string | null) => v
+                    ? <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>
+                    : <Text type="secondary">Javob berilmagan</Text>,
+                },
+                {
+                  title: "To'g'ri javob", dataIndex: 'correctOptionText', width: 240,
+                  render: (v: string | null) => v
+                    ? <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>
+                    : '-',
                 },
                 {
                   title: 'Natija', key: 'isCorrect', width: 120,

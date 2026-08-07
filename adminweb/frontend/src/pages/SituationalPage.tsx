@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Table, Input, Button, Space, Tag, Modal, Form, InputNumber, Typography, message, Select, Card, Statistic, Divider, List } from 'antd'
-import { SearchOutlined, RobotOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons'
+import { SearchOutlined, RobotOutlined, EditOutlined } from '@ant-design/icons'
 import {
   getSituationalResults, getSituationalAnswer, gradeAnswer,
   getUnits, getUnitLessons, getLessonTasks,
@@ -42,11 +42,10 @@ const normalizeSitResult = (result: SitResult): SitResult => ({
   isGraded: result.isGraded ?? result.graded ?? false,
 })
 
-function AiBlockCard({ title, block, onUse }: { title: string; block: AiBlock; onUse: (b: AiBlock) => void }) {
+function AiResultPanel({ block }: { block: AiBlock }) {
   const confidenceColor = block.confidence === 'high' ? 'green' : block.confidence === 'medium' ? 'orange' : 'red'
   return (
-    <Card size="small" title={title} style={{ minWidth: 0 }}
-      extra={<Button size="small" icon={<CheckOutlined />} onClick={() => onUse(block)}>Ishlatish</Button>}>
+    <Card size="small" title="AI tavsiyasi (mahalliy + xalqaro manbalar asosida)" style={{ marginBottom: 12 }}>
       <Space wrap style={{ marginBottom: 8 }}>
         <Tag color={block.passed ? 'green' : 'red'}>{block.grade}/100</Tag>
         <Tag color={confidenceColor}>ishonch: {block.confidence}</Tag>
@@ -88,7 +87,7 @@ export default function SituationalPage() {
 
   const [viewModal, setViewModal] = useState<{ open: boolean; item: SitResult | null }>({ open: false, item: null })
   const [gradeModal, setGradeModal] = useState<{ open: boolean; id: number | null; aiLoading: boolean }>({ open: false, id: null, aiLoading: false })
-  const [aiResult, setAiResult] = useState<{ foreign: AiBlock; local: AiBlock } | null>(null)
+  const [aiResult, setAiResult] = useState<AiBlock | null>(null)
   const [gradeForm] = Form.useForm()
 
   const load = async (p = page, f = filters) => {
@@ -169,16 +168,14 @@ export default function SituationalPage() {
     setGradeModal(m => ({ ...m, aiLoading: true }))
     try {
       const res = await gradeAnswer(gradeModal.id!, { mode: 'ai' })
-      setAiResult({ foreign: res.data.foreign, local: res.data.local })
+      const result: AiBlock = res.data
+      setAiResult(result)
+      gradeForm.setFieldsValue({ grade: result.grade, feedback: result.feedback })
     } catch {
       message.error('AI baholashda xatolik')
     } finally {
       setGradeModal(m => ({ ...m, aiLoading: false }))
     }
-  }
-
-  const useAiBlock = (block: AiBlock) => {
-    gradeForm.setFieldsValue({ grade: block.grade, feedback: block.feedback })
   }
 
   const closeGradeModal = () => {
@@ -316,14 +313,10 @@ export default function SituationalPage() {
         onCancel={closeGradeModal}>
         {aiResult && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <AiBlockCard title="Xalqaro manbalar (foreign)" block={aiResult.foreign} onUse={useAiBlock} />
-              <AiBlockCard title="Mahalliy manbalar (local)" block={aiResult.local} onUse={useAiBlock} />
-            </div>
+            <AiResultPanel block={aiResult} />
             <Paragraph type="secondary">
-              Har ikkala blok — taklif. Mos keladiganini "Ishlatish" bilan pastdagi formaga
-              o'tkazing (yoki qo'lda tahrirlang), so'ng "Qo'lda baholash (saqlash)" bosing —
-              faqat shu bosqichda baho saqlanadi.
+              AI tavsiyasi pastdagi formaga avtomatik qo'yildi — kerak bo'lsa tahrirlang,
+              so'ng "Qo'lda baholash (saqlash)" bosing — faqat shu bosqichda baho saqlanadi.
             </Paragraph>
             <Divider />
           </>

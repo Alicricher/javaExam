@@ -98,7 +98,7 @@ class GradingControllerTest {
     }
 
     @Test
-    void aiGradingWithLessonReturnsBothBlocksWithoutPersisting() {
+    void aiGradingWithLessonReturnsResultWithoutPersisting() {
         ResultRepository resultRepository = mock(ResultRepository.class);
         LessonRepository lessonRepository = mock(LessonRepository.class);
         NotificationService notificationService = mock(NotificationService.class);
@@ -120,15 +120,12 @@ class GradingControllerTest {
         lesson.setId(3);
         when(lessonRepository.getLessonById(3)).thenReturn(lesson);
 
-        GradingService.GradingResult foreign = new GradingService.GradingResult(
-            70, "xalqaro fikr", true,
+        GradingService.GradingResult result = new GradingService.GradingResult(
+            70, "xalqaro va mahalliy fikrlar asosida", true,
             List.of(new GradingService.Criterion("Metod", 20, "to'g'ri tanlangan")),
-            List.of("fixed.txt"), "high", false);
-        GradingService.GradingResult local = new GradingService.GradingResult(
-            55, "mahalliy fikr", false,
-            List.of(), List.of("FOS_1.txt"), "medium", true);
+            List.of("fixed.txt", "FOS_1.txt"), "high", false);
         when(gradingService.gradeForLesson(3, "Vaziyatli topshiriq matni", "Talaba javobi"))
-            .thenReturn(new GradingService.DualGradingResult(foreign, local));
+            .thenReturn(result);
 
         var response = new GradingController(resultRepository, lessonRepository, notificationService, gradingService)
             .grade(5, Map.of("mode", "ai"));
@@ -136,22 +133,13 @@ class GradingControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) response.getBody();
-        @SuppressWarnings("unchecked")
-        Map<String, Object> foreignBlock = (Map<String, Object>) body.get("foreign");
-        @SuppressWarnings("unchecked")
-        Map<String, Object> localBlock = (Map<String, Object>) body.get("local");
 
-        assertThat(foreignBlock)
+        assertThat(body)
             .containsEntry("grade", 70)
             .containsEntry("passed", true)
             .containsEntry("confidence", "high")
-            .containsEntry("citations", List.of("fixed.txt"))
+            .containsEntry("citations", List.of("fixed.txt", "FOS_1.txt"))
             .containsEntry("sourceGap", false);
-        assertThat(localBlock)
-            .containsEntry("grade", 55)
-            .containsEntry("passed", false)
-            .containsEntry("confidence", "medium")
-            .containsEntry("sourceGap", true);
 
         verify(gradingService).gradeForLesson(3, "Vaziyatli topshiriq matni", "Talaba javobi");
         verify(gradingService, never()).grade(anyString(), anyString());
@@ -174,8 +162,7 @@ class GradingControllerTest {
 
         GradingService.GradingResult empty = new GradingService.GradingResult(
             0, "", false, List.of(), List.of(), "low", true);
-        when(gradingService.grade("", "javob"))
-            .thenReturn(new GradingService.DualGradingResult(empty, empty));
+        when(gradingService.grade("", "javob")).thenReturn(empty);
 
         var response = new GradingController(resultRepository, lessonRepository, mock(NotificationService.class), gradingService)
             .grade(5, Map.of("mode", "ai"));

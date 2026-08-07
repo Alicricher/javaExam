@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,9 +18,11 @@ import java.util.Map;
 
 /**
  * Оценивает ситуационные задачи через OpenAI Responses API с file_search
- * по двум отдельным vector store (foreign/local, см. Этап 1-2 плана
- * КИТОБЛАР) — каждый запрос идёт параллельно в оба хранилища, admin
- * видит оба результата и решает, какой принять или поправить.
+ * по ОБОИМ vector store (foreign+local) в одном запросе — модель сама
+ * взвешивает международный и местный источники и выдаёт одну итоговую
+ * оценку с аргументацией с обеих точек зрения (см. КИТОБЛАР/plan.md).
+ * Если ответ студента совпадает хотя бы с одним источником — он не
+ * считается неверным, просто не 100 баллов, с пометкой чего не хватает.
  */
 public class GradingService {
 
@@ -120,35 +121,19 @@ public class GradingService {
         return systemPrompt;
     }
 
-    public DualGradingResult gradeForLesson(int lessonId, String taskText, String answerText) {
+    public GradingResult gradeForLesson(int lessonId, String taskText, String answerText) {
         return gradeWithPrompt(buildSystemPrompt(lessonId), taskText, answerText);
     }
 
-    public DualGradingResult grade(String taskText, String answerText) {
+    public GradingResult grade(String taskText, String answerText) {
         return gradeWithPrompt(systemPrompt, taskText, answerText);
     }
 
-    private DualGradingResult gradeWithPrompt(String systemPromptText, String taskText, String answerText) {
+    private GradingResult gradeWithPrompt(String systemPromptText, String taskText, String answerText) {
         String userMsg = String.format(
             "[VAZIYATLI TOPSHIRIQ SHARTI]\n%s\n\n[TALABANING JAVOBI]\n%s\n",
             taskText, answerText);
 
-        Mono<GradingResult> foreignMono = callResponsesApi(systemPromptText, userMsg, vectorStoreForeign)
-            .doOnError(e -> log.error("grading: foreign store call failed: {}", e.getMessage()));
-        Mono<GradingResult> localMono = callResponsesApi(systemPromptText, userMsg, vectorStoreLocal)
-            .doOnError(e -> log.error("grading: local store call failed: {}", e.getMessage()));
-
-        try {
-            return Mono.zip(foreignMono, localMono)
-                .map(tuple -> new DualGradingResult(tuple.getT1(), tuple.getT2()))
-                .timeout(Duration.ofSeconds(90))
-                .block();
-        } catch (Exception e) {
-            throw new RuntimeException("grading: " + e.getMessage(), e);
-        }
-    }
-
-    private Mono<GradingResult> callResponsesApi(String systemPromptText, String userMsg, String vectorStoreId) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", model);
         requestBody.put("input", List.of(
@@ -156,7 +141,7 @@ public class GradingService {
             Map.of("role", "user", "content", userMsg)
         ));
         requestBody.put("tools", List.of(
-            Map.of("type", "file_search", "vector_store_ids", List.of(vectorStoreId))
+            Map.of("type", "file_search", "vector_store_ids", List.of(vectorStoreForeign, vectorStoreLocal))
         ));
         requestBody.put("text", Map.of(
             "format", Map.of(
@@ -167,13 +152,19 @@ public class GradingService {
             )
         ));
 
-        return webClient.post()
-            .uri("/responses")
-            .bodyValue(requestBody)
-            .retrieve()
-            .bodyToMono(String.class)
-            .timeout(Duration.ofSeconds(60))
-            .map(this::parseResponsesApiResult);
+        try {
+            String response = webClient.post()
+                .uri("/responses")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(90))
+                .block();
+            return parseResponsesApiResult(response);
+        } catch (Exception e) {
+            log.error("grading: request failed: {}", e.getMessage());
+            throw new RuntimeException("grading: " + e.getMessage(), e);
+        }
     }
 
     private GradingResult parseResponsesApiResult(String response) {
@@ -289,19 +280,5 @@ public class GradingService {
         public List<String> getCitations() { return citations; }
         public String getConfidence() { return confidence; }
         public boolean isSourceGap() { return sourceGap; }
-    }
-
-    /** Результат двух параллельных вызовов — по иностранной и по локальной базе. */
-    public static class DualGradingResult {
-        private final GradingResult foreign;
-        private final GradingResult local;
-
-        public DualGradingResult(GradingResult foreign, GradingResult local) {
-            this.foreign = foreign;
-            this.local = local;
-        }
-
-        public GradingResult getForeign() { return foreign; }
-        public GradingResult getLocal() { return local; }
     }
 }

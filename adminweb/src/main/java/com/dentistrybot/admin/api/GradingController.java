@@ -45,15 +45,12 @@ public class GradingController {
                 String taskText = task != null ? task.getTaskText() : "";
                 var lesson = task != null ? lessonRepo.getLessonById(task.getLessonId()) : null;
                 int lessonId = lesson != null ? lesson.getId() : 0;
-                GradingService.DualGradingResult result = lessonId > 0
+                GradingService.GradingResult result = lessonId > 0
                     ? gradingService.gradeForLesson(lessonId, taskText, answer.getAnswerText())
                     : gradingService.grade(taskText, answer.getAnswerText());
-                // AI-режим только показывает оба блока (foreign/local) — в БД
+                // AI-режим только возвращает предложенную оценку — в БД
                 // ничего не пишем, пока админ не подтвердит через mode=manual.
-                return ResponseEntity.ok(Map.of(
-                    "foreign", toMap(result.getForeign()),
-                    "local", toMap(result.getLocal())
-                ));
+                return ResponseEntity.ok(toMap(result));
             } catch (Exception e) {
                 return ResponseEntity.internalServerError().body(Map.of("error", "AI grading failed: " + e.getMessage()));
             }

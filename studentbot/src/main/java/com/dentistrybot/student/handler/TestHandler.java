@@ -126,7 +126,10 @@ public class TestHandler {
             sd.setResultId(result.getId());
             sd.setCurrentQuestion(0);
             sd.setTotalQuestions(questions.size());
-            sd.setStartedAt(result.getStartedAt().toInstant(java.time.ZoneOffset.UTC));
+            // startedAt keladi DB'dan LocalDateTime.now() orqali — bu serverning
+            // mahalliy vaqti (masalan, Asia/Tashkent, UTC+5), UTC emas. ZoneOffset.UTC
+            // bilan noto'g'ri konvertatsiya "Qolgan vaqt"ni soatlab noto'g'ri ko'rsatardi.
+            sd.setStartedAt(result.getStartedAt().atZone(java.time.ZoneId.systemDefault()).toInstant());
             sd.setTimeLimitMinutes(test.getTimeLimitMinutes());
             sd.setQuestions(questions);
 
