@@ -68,6 +68,11 @@ public class ResultController {
         return ResponseEntity.ok(Map.of("results", results, "total", total, "page", page, "size", size));
     }
 
+    @GetMapping("/tests/group-stats")
+    public ResponseEntity<?> groupStats(@RequestParam int testId) {
+        return ResponseEntity.ok(resultRepo.getGroupStatsByTestId(testId));
+    }
+
     @GetMapping("/situational/{id}")
     public ResponseEntity<?> getSituationalAnswer(@PathVariable int id) {
         var answer = resultRepo.getSituationalAnswerById(id);

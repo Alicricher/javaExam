@@ -6,6 +6,7 @@ public final class StateConstants {
     public static final String IDLE = "idle";
 
     // Student registration
+    public static final String REGISTER_LANGUAGE  = "register_language";
     public static final String REGISTER_FULL_NAME = "register_full_name";
     public static final String REGISTER_COURSE    = "register_course";
     public static final String REGISTER_GROUP     = "register_group";

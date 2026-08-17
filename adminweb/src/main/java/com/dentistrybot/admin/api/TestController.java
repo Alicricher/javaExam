@@ -153,6 +153,40 @@ public class TestController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
+    @PostMapping("/api/questions/{id}/photo")
+    public ResponseEntity<?> uploadQuestionPhoto(@PathVariable int id,
+                                                  @RequestParam("file") MultipartFile file) {
+        Question q = testRepo.getQuestionById(id);
+        if (q == null) return ResponseEntity.notFound().build();
+        if (file.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "file required"));
+        try {
+            String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "photo.jpg";
+            String relativePath = fileService.savePhoto("photos/questions", "q_" + id + "_" + original, file.getBytes());
+            if (q.getPhotoFilePath() != null) {
+                try { fileService.deleteFile(q.getPhotoFilePath()); } catch (Exception ignored) {}
+            }
+            testRepo.updateQuestionPhotoFilePath(id, relativePath);
+            return ResponseEntity.ok(Map.of("photoFilePath", relativePath));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/api/questions/{id}/photo")
+    public ResponseEntity<?> deleteQuestionPhoto(@PathVariable int id) {
+        Question q = testRepo.getQuestionById(id);
+        if (q == null) return ResponseEntity.notFound().build();
+        try {
+            if (q.getPhotoFilePath() != null) {
+                try { fileService.deleteFile(q.getPhotoFilePath()); } catch (Exception ignored) {}
+            }
+            testRepo.updateQuestionPhotoFilePath(id, null);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/api/questions/{id}/move")
     public ResponseEntity<?> moveQuestion(@PathVariable int id, @RequestBody Map<String, String> body) {
         Question q = testRepo.getQuestionById(id);

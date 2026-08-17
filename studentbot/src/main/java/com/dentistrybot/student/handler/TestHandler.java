@@ -18,10 +18,13 @@ import com.dentistrybot.student.keyboard.StudentKeyboards;
 import com.dentistrybot.student.localization.UzMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.dentistrybot.shared.service.FileService;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -42,16 +45,18 @@ public class TestHandler {
     private final TestRepository testRepository;
     private final ResultRepository resultRepository;
     private final StudentRepository studentRepository;
+    private final FileService fileService;
 
     public TestHandler(TelegramClient bot, StateManager stateManager, TestService testService,
                        TestRepository testRepository, ResultRepository resultRepository,
-                       StudentRepository studentRepository) {
+                       StudentRepository studentRepository, FileService fileService) {
         this.bot = bot;
         this.stateManager = stateManager;
         this.testService = testService;
         this.testRepository = testRepository;
         this.resultRepository = resultRepository;
         this.studentRepository = studentRepository;
+        this.fileService = fileService;
     }
 
     public void handleTestCallback(CallbackQuery callback) {
@@ -86,7 +91,9 @@ public class TestHandler {
             }
 
             int qCount = testService.getTotalQuestionsCount(test.getId());
-            String prefix = "retake".equals(reason) ? UzMessages.MSG_RETAKE_AVAILABLE + "\n\n" : "";
+            int pastAttempts = resultRepository.getAllTestAttempts(student.getId(), test.getId()).size();
+            int nextAttempt = pastAttempts + 1;
+            String prefix = nextAttempt > 1 ? nextAttempt + "-urinish\n\n" : "";
             String text = prefix + String.format(UzMessages.MSG_TEST_START,
                 test.getTitleUz(), qCount, test.getTimeLimitMinutes(), test.getTotalPoints());
             bot.execute(EditMessageText.builder()
@@ -116,6 +123,7 @@ public class TestHandler {
             }
 
             boolean isRetake = "retake".equals(canTake[1]);
+            int attemptNumber = resultRepository.getAllTestAttempts(student.getId(), testId).size() + 1;
             TestResult result = testService.startTest(student.getId(), testId, isRetake);
             Test test = testRepository.getTestById(testId);
             List<CachedQuestionData> questions = testService.loadQuestionsForCaching(testId);
@@ -126,6 +134,7 @@ public class TestHandler {
             sd.setResultId(result.getId());
             sd.setCurrentQuestion(0);
             sd.setTotalQuestions(questions.size());
+            sd.setAttemptNumber(attemptNumber);
             // startedAt keladi DB'dan LocalDateTime.now() orqali — bu serverning
             // mahalliy vaqti (masalan, Asia/Tashkent, UTC+5), UTC emas. ZoneOffset.UTC
             // bilan noto'g'ri konvertatsiya "Qolgan vaqt"ni soatlab noto'g'ri ko'rsatardi.
@@ -239,10 +248,24 @@ public class TestHandler {
                 options.add(ao);
             }
 
-            bot.execute(SendMessage.builder()
-                .chatId(chatId).text(text)
-                .replyMarkup(StudentKeyboards.answerOptions(options))
-                .build());
+            InlineKeyboardMarkup keyboard = StudentKeyboards.answerOptions(options);
+            String photoPath = cq.getPhotoFilePath();
+            if (photoPath != null) {
+                try {
+                    java.io.File photoFile = new java.io.File(fileService.getFilePath(photoPath));
+                    bot.execute(SendPhoto.builder()
+                        .chatId(chatId)
+                        .photo(new InputFile(photoFile))
+                        .caption(text)
+                        .replyMarkup(keyboard)
+                        .build());
+                } catch (Exception photoEx) {
+                    log.warn("Could not send photo for question {}: {}", cq.getQuestionId(), photoEx.getMessage());
+                    bot.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(keyboard).build());
+                }
+            } else {
+                bot.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(keyboard).build());
+            }
         } catch (Exception e) {
             log.error("showQuestion error: {}", e.getMessage());
         }
@@ -256,7 +279,8 @@ public class TestHandler {
             stateManager.clearState(telegramId);
 
             String prefix = "timeout".equals(status) ? UzMessages.MSG_TEST_TIME_UP + "\n\n" : "";
-            String text = prefix + String.format(UzMessages.MSG_TEST_COMPLETED,
+            String attemptInfo = sd.getAttemptNumber() > 1 ? sd.getAttemptNumber() + "-urinish natijasi\n" : "";
+            String text = prefix + attemptInfo + String.format(UzMessages.MSG_TEST_COMPLETED,
                 result.getScore(), result.getMaxScore(), correctCount, sd.getTotalQuestions());
 
             InlineKeyboardMarkup kb = sd.getLessonId() != 0

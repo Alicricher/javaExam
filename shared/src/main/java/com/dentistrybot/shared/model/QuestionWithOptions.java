@@ -24,4 +24,5 @@ public class QuestionWithOptions {
     public String getQuestionText() { return question != null ? question.getQuestionText() : null; }
     public int getPoints() { return question != null ? question.getPoints() : 0; }
     public int getOrderNum() { return question != null ? question.getOrderNum() : 0; }
+    public String getPhotoFilePath() { return question != null ? question.getPhotoFilePath() : null; }
 }

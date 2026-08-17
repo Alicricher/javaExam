@@ -9,6 +9,7 @@ public class SituationalTask {
     private String taskText;
     private int timeLimitMinutes;
     private boolean isActive;
+    private String photoFilePath;
     private LocalDateTime createdAt;
 
     public SituationalTask() {}
@@ -30,6 +31,9 @@ public class SituationalTask {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public String getPhotoFilePath() { return photoFilePath; }
+    public void setPhotoFilePath(String photoFilePath) { this.photoFilePath = photoFilePath; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

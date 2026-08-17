@@ -67,6 +67,14 @@ export const updateOption = (questionId: number, optId: number, data: Record<str
   client.put(`/questions/${questionId}/options/${optId}`, data)
 export const setCorrectOption = (questionId: number, optionId: number) =>
   client.put(`/questions/${questionId}/correct`, { optionId })
+export const uploadQuestionPhoto = (questionId: number, file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return client.post(`/questions/${questionId}/photo`, form)
+}
+export const deleteQuestionPhoto = (questionId: number) =>
+  client.delete(`/questions/${questionId}/photo`)
+
 export const importQuestions = (testId: number, file: File) => {
   const form = new FormData()
   form.append('file', file)
@@ -89,15 +97,32 @@ export const createTask = (data: { lessonId: number; taskText: string; timeLimit
 export const updateTask = (id: number, data: { taskText?: string; timeLimitMinutes?: number }) =>
   client.put(`/tasks/${id}`, data)
 export const deleteTask = (id: number) => client.delete(`/tasks/${id}`)
+export const uploadTaskPhoto = (taskId: number, file: File) => {
+  const form = new FormData()
+  form.append('file', file)
+  return client.post(`/tasks/${taskId}/photo`, form)
+}
+export const deleteTaskPhoto = (taskId: number) =>
+  client.delete(`/tasks/${taskId}/photo`)
 
 // Results
 export const getTestResults = (params?: Record<string, unknown>) =>
   client.get('/results/tests', { params })
+export const getTestGroupStats = (testId: number) =>
+  client.get('/results/tests/group-stats', { params: { testId } })
 export const getTestResultAnswers = (id: number) =>
   client.get(`/results/tests/${id}/answers`)
 export const getSituationalResults = (params?: Record<string, unknown>) =>
   client.get('/results/situational', { params })
 export const getSituationalAnswer = (id: number) =>
   client.get(`/results/situational/${id}`)
-export const gradeAnswer = (id: number, data: { mode: 'ai' | 'manual'; grade?: number; feedback?: string }) =>
+export const gradeAnswer = (id: number, data: { mode: 'ai' | 'manual'; grade?: number; feedback?: string; citations?: string[] }) =>
   client.post(`/results/situational/${id}/grade`, data)
+
+// Admin users
+export const getAdminUsers = () => client.get('/admin-users')
+export const createAdminUser = (data: { username: string; password: string; role: string; fullName?: string }) =>
+  client.post('/admin-users', data)
+export const updateAdminUser = (id: number, data: { role?: string; fullName?: string; password?: string }) =>
+  client.put(`/admin-users/${id}`, data)
+export const deleteAdminUser = (id: number) => client.delete(`/admin-users/${id}`)

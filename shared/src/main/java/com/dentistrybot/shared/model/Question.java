@@ -8,6 +8,7 @@ public class Question {
     private String questionText;
     private int points;
     private int orderNum;
+    private String photoFilePath;
     private LocalDateTime createdAt;
 
     public Question() {}
@@ -26,6 +27,9 @@ public class Question {
 
     public int getOrderNum() { return orderNum; }
     public void setOrderNum(int orderNum) { this.orderNum = orderNum; }
+
+    public String getPhotoFilePath() { return photoFilePath; }
+    public void setPhotoFilePath(String photoFilePath) { this.photoFilePath = photoFilePath; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

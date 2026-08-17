@@ -186,7 +186,12 @@ export default function SituationalPage() {
 
   const handleManualGrade = async () => {
     const values = await gradeForm.validateFields()
-    await gradeAnswer(gradeModal.id!, { mode: 'manual', grade: values.grade, feedback: values.feedback })
+    await gradeAnswer(gradeModal.id!, {
+      mode: 'manual',
+      grade: values.grade,
+      feedback: values.feedback,
+      citations: aiResult?.citations,
+    })
     message.success('Baho saqlandi')
     closeGradeModal()
     load()
@@ -326,7 +331,7 @@ export default function SituationalPage() {
             <InputNumber min={0} max={100} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="feedback" label="Izoh">
-            <Input.TextArea rows={3} />
+            <Input.TextArea autoSize={{ minRows: 3, maxRows: 12 }} />
           </Form.Item>
         </Form>
       </Modal>

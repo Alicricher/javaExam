@@ -5,6 +5,7 @@ import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
+import com.dentistrybot.student.localization.Lang;
 import com.dentistrybot.student.localization.UzMessages;
 import org.junit.jupiter.api.BeforeEach;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -152,5 +153,27 @@ class ProfileHandlerTest extends HandlerTestSupport {
 
         List<SendMessage> sent = executedOf(bot, SendMessage.class);
         assertThat(sent.get(0).getText()).contains("tugmalardan tanlang");
+    }
+
+    @org.junit.jupiter.api.Test
+    void editProfileCallback_lang_showsLanguageSelection() throws Exception {
+        handler.handleEditProfileCallback(callbackWithData(StudentKeyboards.CB_EDIT_PROFILE + "lang"));
+
+        List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
+        assertThat(edits.get(0).getText()).isEqualTo(Lang.msgSelectLanguage());
+    }
+
+    @org.junit.jupiter.api.Test
+    void handleLangCallback_updatesLanguageAndShowsProfileInNewLang() throws Exception {
+        Student s = student();
+        s.setLanguage("uz");
+        when(studentRepository.getStudentByTelegramId(TELEGRAM_ID)).thenReturn(s);
+
+        handler.handleLangCallback(callbackWithData(""), "ru");
+
+        verify(studentRepository).updateStudentLanguage(42, "ru");
+        verify(stateManager).clearState(TELEGRAM_ID);
+        List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
+        assertThat(edits.get(0).getText()).contains(Lang.msgLangChanged("ru"));
     }
 }

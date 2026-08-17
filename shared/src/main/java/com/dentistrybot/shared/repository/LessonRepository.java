@@ -59,6 +59,7 @@ public class LessonRepository {
         t.setTaskText(rs.getString("task_text"));
         t.setTimeLimitMinutes(rs.getInt("time_limit_minutes"));
         t.setActive(rs.getBoolean("is_active"));
+        t.setPhotoFilePath(rs.getString("photo_file_path"));
         t.setCreatedAt(rs.getObject("created_at", LocalDateTime.class));
         return t;
     };
@@ -247,7 +248,7 @@ public class LessonRepository {
 
     public List<SituationalTask> getSituationalTasksByLessonId(int lessonId) {
         String sql = """
-            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, created_at
+            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, photo_file_path, created_at
             FROM situational_tasks WHERE lesson_id = :lessonId AND is_active = TRUE ORDER BY order_num
             """;
         return jdbc.query(sql, Map.of("lessonId", lessonId), TASK_MAPPER);
@@ -255,11 +256,16 @@ public class LessonRepository {
 
     public SituationalTask getSituationalTaskById(int id) {
         String sql = """
-            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, created_at
+            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, photo_file_path, created_at
             FROM situational_tasks WHERE id = :id
             """;
         var results = jdbc.query(sql, Map.of("id", id), TASK_MAPPER);
         return results.isEmpty() ? null : results.get(0);
+    }
+
+    public void updateSituationalTaskPhotoFilePath(int id, String photoFilePath) {
+        jdbc.update("UPDATE situational_tasks SET photo_file_path = :photoFilePath WHERE id = :id",
+            Map.of("id", id, "photoFilePath", photoFilePath));
     }
 
     public int getNextTaskOrderNum(int lessonId) {

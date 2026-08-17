@@ -64,6 +64,16 @@ public class FileService {
         return relativePath;
     }
 
+    public String savePhoto(String subPath, String filename, byte[] data) throws IOException {
+        Path dir = Paths.get(getFilePath(subPath));
+        Files.createDirectories(dir);
+        String safeName = sanitizeFilename(filename);
+        String relativePath = subPath + "/" + safeName;
+        Path fullPath = Paths.get(getFilePath(relativePath));
+        Files.write(fullPath, data);
+        return relativePath;
+    }
+
     public void deleteFile(String relativePath) throws IOException {
         Path fullPath = Paths.get(getFilePath(relativePath));
         Files.deleteIfExists(fullPath);

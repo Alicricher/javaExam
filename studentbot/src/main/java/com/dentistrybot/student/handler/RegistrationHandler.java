@@ -6,7 +6,7 @@ import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
-import com.dentistrybot.student.localization.UzMessages;
+import com.dentistrybot.student.localization.Lang;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,17 +37,36 @@ public class RegistrationHandler {
         @JsonProperty("course") public int course;
         @JsonProperty("group") public String group = "";
         @JsonProperty("subgroup") public String subgroup = "";
+        @JsonProperty("language") public String language = "uz";
     }
 
     public void startRegistration(long chatId, long telegramId) {
         try {
-            stateManager.setState(telegramId, StateConstants.REGISTER_FULL_NAME);
+            stateManager.setState(telegramId, StateConstants.REGISTER_LANGUAGE);
             bot.execute(SendMessage.builder()
                 .chatId(chatId)
-                .text(UzMessages.MSG_REGISTER_START + "\n\n" + UzMessages.MSG_ENTER_FULL_NAME)
+                .text(Lang.msgSelectLanguage())
+                .replyMarkup(StudentKeyboards.languageSelection())
                 .build());
         } catch (Exception e) {
             log.error("startRegistration error for {}: {}", telegramId, e.getMessage());
+        }
+    }
+
+    public void handleLanguageCallback(CallbackQuery callback, String lang) {
+        long telegramId = callback.getFrom().getId();
+        long chatId = callback.getMessage().getChatId();
+        int messageId = callback.getMessage().getMessageId();
+        try {
+            RegData data = new RegData();
+            data.language = lang;
+            stateManager.setStateWithData(telegramId, StateConstants.REGISTER_FULL_NAME, data);
+            answerCallback(callback.getId());
+            editWithKeyboard(chatId, messageId,
+                Lang.msgRegisterStart(lang) + "\n\n" + Lang.msgEnterFullName(lang),
+                null);
+        } catch (Exception e) {
+            log.error("handleLanguageCallback error: {}", e.getMessage());
         }
     }
 
@@ -57,12 +76,18 @@ public class RegistrationHandler {
         String state = stateManager.getState(telegramId);
 
         try {
+            UserState us = stateManager.getStateWithData(telegramId);
+            RegData data = (us != null && us.getStateData() != null)
+                ? stateManager.getStateData(us, RegData.class) : new RegData();
+            if (data == null) data = new RegData();
+            String lang = data.language != null ? data.language : "uz";
             switch (state) {
-                case StateConstants.REGISTER_FULL_NAME -> handleFullName(chatId, telegramId, message.getText());
-                case StateConstants.REGISTER_COURSE -> sendText(chatId, "Iltimos, kursni yuqoridagi tugmalardan tanlang.");
-                case StateConstants.REGISTER_GROUP -> sendText(chatId, "Iltimos, guruhni yuqoridagi tugmalardan tanlang.");
-                case StateConstants.REGISTER_SUBGROUP -> sendText(chatId, "Iltimos, kichik guruhni yuqoridagi tugmalardan tanlang.");
-                case StateConstants.REGISTER_FACULTY -> sendText(chatId, "Iltimos, fakultetni yuqoridagi tugmalardan tanlang.");
+                case StateConstants.REGISTER_LANGUAGE -> sendText(chatId, Lang.msgSelectLanguage());
+                case StateConstants.REGISTER_FULL_NAME -> handleFullName(chatId, telegramId, message.getText(), lang, data);
+                case StateConstants.REGISTER_COURSE -> sendText(chatId, Lang.msgEnterCourse(lang));
+                case StateConstants.REGISTER_GROUP -> sendText(chatId, Lang.msgEnterGroup(lang));
+                case StateConstants.REGISTER_SUBGROUP -> sendText(chatId, Lang.msgEnterSubgroup(lang));
+                case StateConstants.REGISTER_FACULTY -> sendText(chatId, Lang.msgEnterFaculty(lang));
             }
         } catch (Exception e) {
             log.error("handleRegistrationStep error: {}", e.getMessage());
@@ -79,10 +104,11 @@ public class RegistrationHandler {
                 ? stateManager.getStateData(us, RegData.class) : new RegData();
             if (data == null) data = new RegData();
             data.course = course;
+            String lang1 = data.language != null ? data.language : "uz";
             stateManager.setStateWithData(telegramId, StateConstants.REGISTER_GROUP, data);
             answerCallback(callback.getId());
             editWithKeyboard(chatId, messageId,
-                course + "-kurs tanlandi.\n\n" + UzMessages.MSG_ENTER_GROUP,
+                Lang.msg(lang1, course + "-kurs tanlandi.", course + "-й курс выбран.") + "\n\n" + Lang.msgEnterGroup(lang1),
                 StudentKeyboards.groupSelection(course));
         } catch (Exception e) {
             log.error("handleCourseCallback error: {}", e.getMessage());
@@ -99,10 +125,11 @@ public class RegistrationHandler {
                 ? stateManager.getStateData(us, RegData.class) : new RegData();
             if (data == null) data = new RegData();
             data.group = group;
+            String lang2 = data.language != null ? data.language : "uz";
             stateManager.setStateWithData(telegramId, StateConstants.REGISTER_SUBGROUP, data);
             answerCallback(callback.getId());
             editWithKeyboard(chatId, messageId,
-                group + " guruhi tanlandi.\n\n" + UzMessages.MSG_ENTER_SUBGROUP,
+                Lang.msg(lang2, group + " guruhi tanlandi.", "Группа " + group + " выбрана.") + "\n\n" + Lang.msgEnterSubgroup(lang2),
                 StudentKeyboards.subgroupSelection());
         } catch (Exception e) {
             log.error("handleGroupCallback error: {}", e.getMessage());
@@ -119,10 +146,11 @@ public class RegistrationHandler {
                 ? stateManager.getStateData(us, RegData.class) : new RegData();
             if (data == null) data = new RegData();
             data.subgroup = normalizeCyrillicToLatin(subgroup).toUpperCase();
+            String lang3 = data.language != null ? data.language : "uz";
             stateManager.setStateWithData(telegramId, StateConstants.REGISTER_FACULTY, data);
             answerCallback(callback.getId());
             editWithKeyboard(chatId, messageId,
-                subgroup + " kichik guruhi tanlandi.\n\n" + UzMessages.MSG_ENTER_FACULTY,
+                Lang.msg(lang3, subgroup + " kichik guruhi tanlandi.", "Подгруппа " + subgroup + " выбрана.") + "\n\n" + Lang.msgEnterFaculty(lang3),
                 StudentKeyboards.facultySelection());
         } catch (Exception e) {
             log.error("handleSubgroupCallback error: {}", e.getMessage());
@@ -143,9 +171,11 @@ public class RegistrationHandler {
             stateManager.clearState(telegramId);
             try { bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build()); } catch (Exception ignored) {}
 
+            String lang = data.language != null ? data.language : "uz";
+
             if (studentRepository.studentExists(telegramId)) {
                 bot.execute(SendMessage.builder().chatId(chatId)
-                    .text(UzMessages.MSG_MAIN_MENU).replyMarkup(StudentKeyboards.mainMenu()).build());
+                    .text(Lang.msgMainMenu(lang)).replyMarkup(StudentKeyboards.mainMenu(lang)).build());
                 return;
             }
 
@@ -156,15 +186,16 @@ public class RegistrationHandler {
             student.setGroupName(data.group);
             student.setSubgroup(data.subgroup);
             student.setFaculty(faculty);
+            student.setLanguage(lang);
             studentRepository.createStudent(student);
 
-            String text = String.format(UzMessages.MSG_REGISTER_COMPLETE,
+            String text = Lang.msgRegisterComplete(lang,
                 student.getFullName(), student.getCourse(), student.getGroupName(),
                 student.getSubgroup(), student.getFaculty());
             bot.execute(SendMessage.builder()
                 .chatId(chatId)
                 .text(text)
-                .replyMarkup(StudentKeyboards.mainMenu())
+                .replyMarkup(StudentKeyboards.mainMenu(lang))
                 .build());
         } catch (Exception e) {
             log.error("handleFacultyCallback error: {}", e.getMessage());
@@ -174,24 +205,23 @@ public class RegistrationHandler {
     public boolean isInRegistration(long telegramId) {
         String state = stateManager.getState(telegramId);
         return switch (state) {
-            case StateConstants.REGISTER_FULL_NAME, StateConstants.REGISTER_COURSE,
-                 StateConstants.REGISTER_GROUP, StateConstants.REGISTER_SUBGROUP,
-                 StateConstants.REGISTER_FACULTY -> true;
+            case StateConstants.REGISTER_LANGUAGE, StateConstants.REGISTER_FULL_NAME,
+                 StateConstants.REGISTER_COURSE, StateConstants.REGISTER_GROUP,
+                 StateConstants.REGISTER_SUBGROUP, StateConstants.REGISTER_FACULTY -> true;
             default -> false;
         };
     }
 
-    private void handleFullName(long chatId, long telegramId, String name) throws Exception {
+    private void handleFullName(long chatId, long telegramId, String name, String lang, RegData existing) throws Exception {
         if (name == null || name.trim().length() < 3) {
-            sendText(chatId, "Ism juda qisqa. Iltimos, to'liq ismingizni kiriting.");
+            sendText(chatId, Lang.msg(lang, "Ism juda qisqa. Iltimos, to'liq ismingizni kiriting.", "Имя слишком короткое. Пожалуйста, введите полное имя."));
             return;
         }
-        RegData data = new RegData();
-        data.fullName = name.trim();
-        stateManager.setStateWithData(telegramId, StateConstants.REGISTER_COURSE, data);
+        existing.fullName = name.trim();
+        stateManager.setStateWithData(telegramId, StateConstants.REGISTER_COURSE, existing);
         bot.execute(SendMessage.builder()
             .chatId(chatId)
-            .text(UzMessages.MSG_ENTER_COURSE)
+            .text(Lang.msgEnterCourse(lang))
             .replyMarkup(StudentKeyboards.courseSelection())
             .build());
     }
@@ -215,8 +245,9 @@ public class RegistrationHandler {
 
     private void editWithKeyboard(long chatId, int messageId, String text, InlineKeyboardMarkup kb) {
         try {
+            InlineKeyboardMarkup markup = kb != null ? kb : InlineKeyboardMarkup.builder().build();
             bot.execute(EditMessageText.builder()
-                .chatId(chatId).messageId(messageId).text(text).replyMarkup(kb).build());
+                .chatId(chatId).messageId(messageId).text(text).replyMarkup(markup).build());
         } catch (Exception e) {
             log.error("editWithKeyboard error: {}", e.getMessage());
         }

@@ -39,6 +39,7 @@ public class TestRepository {
         q.setQuestionText(rs.getString("question_text"));
         q.setPoints(rs.getInt("points"));
         q.setOrderNum(rs.getInt("order_num"));
+        q.setPhotoFilePath(rs.getString("photo_file_path"));
         q.setCreatedAt(rs.getObject("created_at", LocalDateTime.class));
         return q;
     };
@@ -117,7 +118,7 @@ public class TestRepository {
 
     public List<Question> getQuestionsByTestId(int testId) {
         String sql = """
-            SELECT id, test_id, question_text, points, order_num, created_at
+            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at
             FROM questions WHERE test_id = :testId ORDER BY order_num
             """;
         return jdbc.query(sql, Map.of("testId", testId), QUESTION_MAPPER);
@@ -125,14 +126,14 @@ public class TestRepository {
 
     public Question getQuestionById(int id) {
         var results = jdbc.query("""
-            SELECT id, test_id, question_text, points, order_num, created_at FROM questions WHERE id = :id
+            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at FROM questions WHERE id = :id
             """, Map.of("id", id), QUESTION_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }
 
     public List<Question> getQuestionsByTestIdPaginated(int testId, int limit, int offset) {
         String sql = """
-            SELECT id, test_id, question_text, points, order_num, created_at
+            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at
             FROM questions WHERE test_id = :testId ORDER BY order_num LIMIT :limit OFFSET :offset
             """;
         return jdbc.query(sql,
@@ -179,6 +180,11 @@ public class TestRepository {
         jdbc.update("UPDATE questions SET question_text = :text, points = :points WHERE id = :id",
             Map.of("id", question.getId(), "text", question.getQuestionText(), "points", question.getPoints()));
         updateTestTotalPoints(question.getTestId());
+    }
+
+    public void updateQuestionPhotoFilePath(int id, String photoFilePath) {
+        jdbc.update("UPDATE questions SET photo_file_path = :photoFilePath WHERE id = :id",
+            Map.of("id", id, "photoFilePath", photoFilePath));
     }
 
     public void deleteQuestion(int id, int testId) {

@@ -36,7 +36,7 @@ class GradingControllerTest {
         ).grade(5, Map.of("mode", "manual", "grade", 85, "feedback", "Yaxshi"));
 
         ArgumentCaptor<Integer> gradedByCaptor = ArgumentCaptor.forClass(Integer.class);
-        verify(resultRepository).gradeSituationalAnswer(eq(5), eq(85), eq("Yaxshi"), gradedByCaptor.capture());
+        verify(resultRepository).gradeSituationalAnswer(eq(5), eq(85), eq("Yaxshi"), gradedByCaptor.capture(), any());
         verify(notificationService).notifySituationalGraded(5);
         assertThat(gradedByCaptor.getValue()).isNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -58,7 +58,7 @@ class GradingControllerTest {
         ).grade(5, Map.of("mode", "manual", "grade", 101));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any());
+        verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any(), any());
     }
 
     @Test
@@ -144,7 +144,7 @@ class GradingControllerTest {
         verify(gradingService).gradeForLesson(3, "Vaziyatli topshiriq matni", "Talaba javobi");
         verify(gradingService, never()).grade(anyString(), anyString());
         verifyNoInteractions(notificationService);
-        verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any());
+        verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any(), any());
     }
 
     @Test

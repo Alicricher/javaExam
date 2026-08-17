@@ -5,6 +5,7 @@ import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
+import com.dentistrybot.student.localization.Lang;
 import com.dentistrybot.student.localization.UzMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +33,10 @@ public class ProfileHandler {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
             if (s == null) { sendText(chatId, UzMessages.MSG_NOT_FOUND); return; }
-            String text = String.format(UzMessages.MSG_PROFILE,
-                s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
+            String lang = s.getLanguage();
+            String text = Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
             bot.execute(SendMessage.builder()
-                .chatId(chatId).text(text).replyMarkup(StudentKeyboards.profileEdit()).build());
+                .chatId(chatId).text(text).replyMarkup(StudentKeyboards.profileEdit(lang)).build());
         } catch (Exception e) {
             log.error("showProfile error: {}", e.getMessage());
         }
@@ -48,39 +49,67 @@ public class ProfileHandler {
         String action = callback.getData().substring(StudentKeyboards.CB_EDIT_PROFILE.length());
         try {
             answerCallback(callback.getId());
+            Student s = studentRepository.getStudentByTelegramId(telegramId);
+            String lang = s != null ? s.getLanguage() : "uz";
             switch (action) {
                 case "course" -> {
                     stateManager.setState(telegramId, StateConstants.EDIT_COURSE);
                     bot.execute(EditMessageText.builder()
                         .chatId(chatId).messageId(messageId)
-                        .text(UzMessages.MSG_ENTER_COURSE)
+                        .text(Lang.msgEnterCourse(lang))
                         .replyMarkup(StudentKeyboards.courseSelection()).build());
                 }
                 case "group" -> {
-                    Student s = studentRepository.getStudentByTelegramId(telegramId);
                     stateManager.setState(telegramId, StateConstants.EDIT_GROUP);
                     bot.execute(EditMessageText.builder()
                         .chatId(chatId).messageId(messageId)
-                        .text(UzMessages.MSG_ENTER_GROUP)
+                        .text(Lang.msgEnterGroup(lang))
                         .replyMarkup(StudentKeyboards.groupSelection(s != null ? s.getCourse() : 1)).build());
                 }
                 case "subgroup" -> {
                     stateManager.setState(telegramId, StateConstants.EDIT_SUBGROUP);
                     bot.execute(EditMessageText.builder()
                         .chatId(chatId).messageId(messageId)
-                        .text(UzMessages.MSG_ENTER_SUBGROUP)
+                        .text(Lang.msgEnterSubgroup(lang))
                         .replyMarkup(StudentKeyboards.subgroupSelection()).build());
                 }
                 case "faculty" -> {
                     stateManager.setState(telegramId, StateConstants.EDIT_FACULTY);
                     bot.execute(EditMessageText.builder()
                         .chatId(chatId).messageId(messageId)
-                        .text(UzMessages.MSG_ENTER_FACULTY)
+                        .text(Lang.msgEnterFaculty(lang))
                         .replyMarkup(StudentKeyboards.facultySelection()).build());
+                }
+                case "lang" -> {
+                    bot.execute(EditMessageText.builder()
+                        .chatId(chatId).messageId(messageId)
+                        .text(Lang.msgSelectLanguage())
+                        .replyMarkup(StudentKeyboards.languageSelection()).build());
                 }
             }
         } catch (Exception e) {
             log.error("handleEditProfileCallback error: {}", e.getMessage());
+        }
+    }
+
+    public void handleLangCallback(CallbackQuery callback, String lang) {
+        long telegramId = callback.getFrom().getId();
+        long chatId = callback.getMessage().getChatId();
+        int messageId = callback.getMessage().getMessageId();
+        try {
+            Student s = studentRepository.getStudentByTelegramId(telegramId);
+            if (s == null) return;
+            studentRepository.updateStudentLanguage(s.getId(), lang);
+            s.setLanguage(lang);
+            stateManager.clearState(telegramId);
+            answerCallback(callback.getId());
+            String text = Lang.msgLangChanged(lang) + "\n\n" +
+                Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
+            bot.execute(EditMessageText.builder()
+                .chatId(chatId).messageId(messageId).text(text)
+                .replyMarkup(StudentKeyboards.profileEdit(lang)).build());
+        } catch (Exception e) {
+            log.error("handleLangCallback error: {}", e.getMessage());
         }
     }
 
@@ -91,13 +120,14 @@ public class ProfileHandler {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
             if (s == null) return;
+            String lang = s.getLanguage();
             s.setCourse(course);
             studentRepository.updateStudent(s);
             stateManager.setState(telegramId, StateConstants.EDIT_GROUP);
             answerCallback(callback.getId());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId)
-                .text("Kurs o'zgartirildi! Endi guruhni tanlang:")
+                .text(Lang.msg(lang, "Kurs o'zgartirildi! Endi guruhni tanlang:", "Курс изменён! Теперь выберите группу:"))
                 .replyMarkup(StudentKeyboards.groupSelection(course)).build());
         } catch (Exception e) {
             log.error("handleEditCourseCallback error: {}", e.getMessage());
@@ -111,15 +141,16 @@ public class ProfileHandler {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
             if (s == null) return;
+            String lang = s.getLanguage();
             s.setGroupName(group);
             studentRepository.updateStudent(s);
             stateManager.clearState(telegramId);
             answerCallback(callback.getId());
-            String text = UzMessages.MSG_PROFILE_UPDATED + "\n\n" + String.format(UzMessages.MSG_PROFILE,
-                s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
+            String text = Lang.msgProfileUpdated(lang) + "\n\n" +
+                Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.profileEdit()).build());
+                .replyMarkup(StudentKeyboards.profileEdit(lang)).build());
         } catch (Exception e) {
             log.error("handleEditGroupCallback error: {}", e.getMessage());
         }
@@ -132,15 +163,16 @@ public class ProfileHandler {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
             if (s == null) return;
+            String lang = s.getLanguage();
             s.setSubgroup(RegistrationHandler.normalizeCyrillicToLatin(subgroup).toUpperCase());
             studentRepository.updateStudent(s);
             stateManager.clearState(telegramId);
             answerCallback(callback.getId());
-            String text = UzMessages.MSG_PROFILE_UPDATED + "\n\n" + String.format(UzMessages.MSG_PROFILE,
-                s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
+            String text = Lang.msgProfileUpdated(lang) + "\n\n" +
+                Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.profileEdit()).build());
+                .replyMarkup(StudentKeyboards.profileEdit(lang)).build());
         } catch (Exception e) {
             log.error("handleEditSubgroupCallback error: {}", e.getMessage());
         }
@@ -153,23 +185,27 @@ public class ProfileHandler {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
             if (s == null) return;
+            String lang = s.getLanguage();
             s.setFaculty(faculty);
             studentRepository.updateStudent(s);
             stateManager.clearState(telegramId);
             answerCallback(callback.getId());
-            String text = UzMessages.MSG_PROFILE_UPDATED + "\n\n" + String.format(UzMessages.MSG_PROFILE,
-                s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
+            String text = Lang.msgProfileUpdated(lang) + "\n\n" +
+                Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.profileEdit()).build());
+                .replyMarkup(StudentKeyboards.profileEdit(lang)).build());
         } catch (Exception e) {
             log.error("handleEditFacultyCallback error: {}", e.getMessage());
         }
     }
 
     public void handleProfileEditText(Message message) {
+        long telegramId = message.getFrom().getId();
         long chatId = message.getChatId();
-        sendText(chatId, "Iltimos, variantni yuqoridagi tugmalardan tanlang.");
+        Student s = studentRepository.getStudentByTelegramId(telegramId);
+        String lang = s != null ? s.getLanguage() : "uz";
+        sendText(chatId, Lang.msg(lang, "Iltimos, variantni yuqoridagi tugmalardan tanlang.", "Пожалуйста, выберите вариант из кнопок выше."));
     }
 
     private void sendText(long chatId, String text) {

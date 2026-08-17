@@ -14,6 +14,7 @@ public class SituationalAnswer {
     private String feedback;
     private Integer gradedBy;
     private LocalDateTime gradedAt;
+    private String citations;
 
     public SituationalAnswer() {}
 
@@ -49,4 +50,7 @@ public class SituationalAnswer {
 
     public LocalDateTime getGradedAt() { return gradedAt; }
     public void setGradedAt(LocalDateTime gradedAt) { this.gradedAt = gradedAt; }
+
+    public String getCitations() { return citations; }
+    public void setCitations(String citations) { this.citations = citations; }
 }

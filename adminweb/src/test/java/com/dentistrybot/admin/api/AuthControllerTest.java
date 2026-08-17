@@ -110,5 +110,22 @@ class AuthControllerTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) response.getBody();
         assertThat(body).containsEntry("username", "admin");
+        assertThat(body).containsKey("role");
+    }
+
+    @Test
+    void meReturnsRoleStrippedOfPrefix() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("prof");
+        var authority = mock(org.springframework.security.core.GrantedAuthority.class);
+        when(authority.getAuthority()).thenReturn("ROLE_ZAV_KAFEDRA");
+        when(auth.getAuthorities()).thenReturn(java.util.List.of(authority));
+
+        var response = new AuthController(mock(AuthenticationManager.class)).me(auth);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        assertThat(body).containsEntry("role", "ZAV_KAFEDRA");
     }
 }

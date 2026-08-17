@@ -60,13 +60,23 @@ public class GradingController {
             int grade = Integer.parseInt(gradeObj.toString());
             if (grade < 0 || grade > 100) return ResponseEntity.badRequest().body(Map.of("error", "grade must be 0-100"));
             String feedback = body.containsKey("feedback") ? (String) body.get("feedback") : "";
+            String citations = buildCitationsString(body.get("citations"));
 
-            resultRepo.gradeSituationalAnswer(id, grade, feedback != null ? feedback : "", null);
+            resultRepo.gradeSituationalAnswer(id, grade, feedback != null ? feedback : "", null, citations);
             notificationService.notifySituationalGraded(id);
             return ResponseEntity.ok(Map.of("grade", grade, "feedback", feedback, "passed", grade >= 60));
         } else {
             return ResponseEntity.badRequest().body(Map.of("error", "mode must be 'ai' or 'manual'"));
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private String buildCitationsString(Object raw) {
+        if (raw == null) return "";
+        if (raw instanceof java.util.List<?> list) {
+            return String.join(", ", list.stream().map(Object::toString).toList());
+        }
+        return raw.toString();
     }
 
     private Map<String, Object> toMap(GradingService.GradingResult r) {

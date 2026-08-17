@@ -56,6 +56,10 @@ public class AuthController {
         if (auth == null || !auth.isAuthenticated()) {
             return ResponseEntity.status(401).body(Map.of("error", "Not authenticated"));
         }
-        return ResponseEntity.ok(Map.of("username", auth.getName()));
+        var authorities = auth.getAuthorities();
+        String role = (authorities != null ? authorities.stream() : java.util.stream.Stream.empty())
+            .map(a -> a.getAuthority().replace("ROLE_", ""))
+            .findFirst().orElse("PROFESSOR");
+        return ResponseEntity.ok(Map.of("username", auth.getName(), "role", role));
     }
 }

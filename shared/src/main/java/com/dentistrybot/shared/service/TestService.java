@@ -109,6 +109,7 @@ public class TestService {
             cq.setQuestionId(q.getId());
             cq.setQuestionText(q.getQuestionText());
             cq.setPoints(q.getPoints());
+            cq.setPhotoFilePath(q.getPhotoFilePath());
             List<CachedOptionData> options = new ArrayList<>();
             for (AnswerOption opt : qwo.getOptions()) {
                 CachedOptionData co = new CachedOptionData();

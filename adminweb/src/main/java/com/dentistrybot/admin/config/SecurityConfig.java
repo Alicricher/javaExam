@@ -1,6 +1,7 @@
 package com.dentistrybot.admin.config;
 
-import com.dentistrybot.shared.config.AppProperties;
+import com.dentistrybot.admin.model.AdminUser;
+import com.dentistrybot.admin.repository.AdminUserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,14 +9,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -41,14 +42,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(AppProperties props, PasswordEncoder encoder) {
-        String rawPassword = props.getAdminPassword();
-        String encoded = rawPassword.startsWith("$2") ? rawPassword : encoder.encode(rawPassword);
-        var admin = User.withUsername("admin")
-            .password(encoded)
-            .roles("ADMIN")
-            .build();
-        return new InMemoryUserDetailsManager(admin);
+    public UserDetailsService userDetailsService(AdminUserRepository adminUserRepository) {
+        return username -> {
+            AdminUser user = adminUserRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+            return User.withUsername(user.getUsername())
+                .password(user.getPasswordHash())
+                .roles(user.getRole())
+                .build();
+        };
     }
 
     @Bean
@@ -62,7 +64,12 @@ public class SecurityConfig {
             .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/me").permitAll()
-                .requestMatchers("/api/**").authenticated()
+                // User management: super admin only
+                .requestMatchers("/api/admin-users/**").hasRole("SUPER_ADMIN")
+                // All GET requests: any authenticated user (all 3 roles)
+                .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
+                // Write operations (POST/PUT/DELETE): super admin and zav kafedra
+                .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN", "ZAV_KAFEDRA")
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form.disable())
@@ -78,37 +85,35 @@ public class SecurityConfig {
                     res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     new ObjectMapper().writeValue(res.getWriter(), Map.of("error", "Unauthorized"));
                 })
+                .accessDeniedHandler((req, res, denied) -> {
+                    res.setContentType("application/json");
+                    res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    new ObjectMapper().writeValue(res.getWriter(), Map.of("error", "Forbidden"));
+                })
             )
             .securityContext(ctx -> ctx
                 .securityContextRepository(new HttpSessionSecurityContextRepository())
-            )
-            .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
+            );
 
         return http.build();
     }
 
     /**
-     * CookieCsrfTokenRepository defers reading the token until something calls
-     * CsrfToken#getToken(). In a pure REST/SPA setup nothing ever does that, so the
-     * XSRF-TOKEN cookie is never written and every mutating request is rejected with 403.
-     * This filter forces resolution on every request so the cookie is always set.
+     * Forces CSRF token resolution on every request so the XSRF-TOKEN cookie is always set.
      */
     private static final class CsrfCookieFilter extends OncePerRequestFilter {
         @Override
         protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                         FilterChain filterChain) throws ServletException, IOException {
             CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
-            if (csrfToken != null) {
-                csrfToken.getToken();
-            }
+            if (csrfToken != null) csrfToken.getToken();
             filterChain.doFilter(request, response);
         }
     }
 
     /**
-     * Resolves the raw token from the X-XSRF-TOKEN header for validation (SPA sends the
-     * cookie value back verbatim) while still using the BREACH-protected XOR handler to
-     * generate the token exposed via the cookie.
+     * Resolves raw token from X-XSRF-TOKEN header for validation while using XOR handler to generate
+     * the cookie, preventing BREACH attacks.
      */
     private static final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
         private final CsrfTokenRequestHandler delegate = new XorCsrfTokenRequestAttributeHandler();

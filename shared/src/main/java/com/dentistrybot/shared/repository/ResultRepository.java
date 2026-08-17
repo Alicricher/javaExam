@@ -229,7 +229,7 @@ public class ResultRepository {
             params.addValue("subgroupName", "%" + subgroupName + "%");
         }
         if (studentName != null && !studentName.isEmpty()) {
-            conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
+            conditions.add("uz_translit(s.full_name) LIKE uz_translit(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
         if (testName != null && !testName.isEmpty()) {
@@ -290,7 +290,7 @@ public class ResultRepository {
             params.addValue("subgroupName", "%" + subgroupName + "%");
         }
         if (studentName != null && !studentName.isEmpty()) {
-            conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
+            conditions.add("uz_translit(s.full_name) LIKE uz_translit(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
         if (testName != null && !testName.isEmpty()) {
@@ -353,6 +353,32 @@ public class ResultRepository {
             Map.of("testId", testId, "groupName", groupName, "subgroup", subgroup,
                    "limit", limit, "offset", offset),
             RESULT_WITH_STUDENT_MAPPER);
+    }
+
+    public List<java.util.Map<String, Object>> getGroupStatsByTestId(int testId) {
+        return jdbc.queryForList("""
+            WITH best_per_student AS (
+                SELECT DISTINCT ON (tr.student_id)
+                    s.group_name,
+                    s.subgroup,
+                    s.full_name,
+                    tr.score,
+                    tr.max_score
+                FROM test_results tr
+                JOIN students s ON tr.student_id = s.id
+                WHERE tr.test_id = :testId AND tr.status = 'completed'
+                ORDER BY tr.student_id, tr.score DESC, tr.completed_at DESC
+            )
+            SELECT
+                group_name,
+                subgroup,
+                COUNT(*) AS student_count,
+                COUNT(CASE WHEN max_score > 0 AND score::float / max_score >= 0.6 THEN 1 END) AS passed_count,
+                ROUND(AVG(score::float / NULLIF(max_score, 0) * 100)) AS avg_score_pct
+            FROM best_per_student
+            GROUP BY group_name, subgroup
+            ORDER BY group_name, subgroup
+            """, Map.of("testId", testId));
     }
 
     // ==================== TEST ANSWERS ====================
@@ -487,7 +513,7 @@ public class ResultRepository {
     public SituationalAnswer getSituationalAnswerById(int id) {
         var results = jdbc.query("""
             SELECT id, student_id, task_id, answer_text, COALESCE(photo_file_id, ''), submitted_at,
-                   is_graded, grade, COALESCE(feedback, ''), graded_by, graded_at
+                   is_graded, grade, COALESCE(feedback, ''), graded_by, graded_at, COALESCE(citations, '')
             FROM situational_answers WHERE id = :id
             """, Map.of("id", id), (rs, rowNum) -> {
             SituationalAnswer a = new SituationalAnswer();
@@ -504,6 +530,7 @@ public class ResultRepository {
             int gradedBy = rs.getInt(10);
             a.setGradedBy(rs.wasNull() ? null : gradedBy);
             a.setGradedAt(rs.getObject(11, LocalDateTime.class));
+            a.setCitations(rs.getString(12));
             return a;
         });
         return results.isEmpty() ? null : results.get(0);
@@ -526,10 +553,11 @@ public class ResultRepository {
         return map;
     }
 
-    public void gradeSituationalAnswer(int id, int grade, String feedback, Integer gradedBy) {
+    public void gradeSituationalAnswer(int id, int grade, String feedback, Integer gradedBy, String citations) {
         jdbc.update("""
             UPDATE situational_answers
-            SET is_graded = TRUE, grade = :grade, feedback = :feedback, graded_by = :gradedBy, graded_at = :gradedAt
+            SET is_graded = TRUE, grade = :grade, feedback = :feedback,
+                graded_by = :gradedBy, graded_at = :gradedAt, citations = :citations
             WHERE id = :id
             """,
             new MapSqlParameterSource()
@@ -537,7 +565,8 @@ public class ResultRepository {
                 .addValue("grade", grade)
                 .addValue("feedback", feedback)
                 .addValue("gradedBy", gradedBy)
-                .addValue("gradedAt", LocalDateTime.now()));
+                .addValue("gradedAt", LocalDateTime.now())
+                .addValue("citations", citations));
     }
 
     public List<SituationalAnswerWithStudent> getSituationalAnswersWithStudents(int limit, int offset) {
@@ -579,7 +608,7 @@ public class ResultRepository {
             params.addValue("subgroupName", "%" + subgroupName + "%");
         }
         if (studentName != null && !studentName.isEmpty()) {
-            conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
+            conditions.add("uz_translit(s.full_name) LIKE uz_translit(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
         if (graded != null && !graded.isEmpty()) {
@@ -627,7 +656,7 @@ public class ResultRepository {
             params.addValue("subgroupName", "%" + subgroupName + "%");
         }
         if (studentName != null && !studentName.isEmpty()) {
-            conditions.add("LOWER(s.full_name) LIKE LOWER(:studentName)");
+            conditions.add("uz_translit(s.full_name) LIKE uz_translit(:studentName)");
             params.addValue("studentName", "%" + studentName + "%");
         }
         if (graded != null && !graded.isEmpty()) {

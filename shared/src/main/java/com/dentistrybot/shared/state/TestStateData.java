@@ -22,6 +22,8 @@ public class TestStateData {
     private int timeLimitMinutes;
     @JsonProperty("questions")
     private List<CachedQuestionData> questions;
+    @JsonProperty("attempt_number")
+    private int attemptNumber = 1;
 
     public TestStateData() {}
 
@@ -48,4 +50,7 @@ public class TestStateData {
 
     public List<CachedQuestionData> getQuestions() { return questions; }
     public void setQuestions(List<CachedQuestionData> questions) { this.questions = questions; }
+
+    public int getAttemptNumber() { return attemptNumber; }
+    public void setAttemptNumber(int attemptNumber) { this.attemptNumber = attemptNumber; }
 }

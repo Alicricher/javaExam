@@ -13,6 +13,8 @@ public class CachedQuestionData {
     private int points;
     @JsonProperty("options")
     private List<CachedOptionData> options;
+    @JsonProperty("photo_file_path")
+    private String photoFilePath;
 
     public CachedQuestionData() {}
 
@@ -27,4 +29,7 @@ public class CachedQuestionData {
 
     public List<CachedOptionData> getOptions() { return options; }
     public void setOptions(List<CachedOptionData> options) { this.options = options; }
+
+    public String getPhotoFilePath() { return photoFilePath; }
+    public void setPhotoFilePath(String photoFilePath) { this.photoFilePath = photoFilePath; }
 }

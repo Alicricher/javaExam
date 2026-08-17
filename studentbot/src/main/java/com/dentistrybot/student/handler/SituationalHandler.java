@@ -6,6 +6,7 @@ import com.dentistrybot.shared.model.Student;
 import com.dentistrybot.shared.repository.LessonRepository;
 import com.dentistrybot.shared.repository.ResultRepository;
 import com.dentistrybot.shared.repository.StudentRepository;
+import com.dentistrybot.shared.service.FileService;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.service.TestService;
 import com.dentistrybot.shared.state.SituationalStateData;
@@ -17,8 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.PhotoSize;
@@ -43,16 +46,18 @@ public class SituationalHandler {
     private final LessonRepository lessonRepository;
     private final ResultRepository resultRepository;
     private final StudentRepository studentRepository;
+    private final FileService fileService;
 
     public SituationalHandler(TelegramClient bot, StateManager stateManager, TestService testService,
                                LessonRepository lessonRepository, ResultRepository resultRepository,
-                               StudentRepository studentRepository) {
+                               StudentRepository studentRepository, FileService fileService) {
         this.bot = bot;
         this.stateManager = stateManager;
         this.testService = testService;
         this.lessonRepository = lessonRepository;
         this.resultRepository = resultRepository;
         this.studentRepository = studentRepository;
+        this.fileService = fileService;
     }
 
     public void handleSituationalCallback(CallbackQuery callback) {
@@ -150,8 +155,23 @@ public class SituationalHandler {
             String timeStr = String.format("%d:%02d", sec / 60, sec % 60);
             String text = String.format(UzMessages.MSG_SITUATIONAL_TASK, task.getTaskText()) + "\n\nQolgan vaqt: " + timeStr;
 
-            bot.execute(SendMessage.builder()
-                .chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly()).build());
+            if (task.getPhotoFilePath() != null) {
+                try {
+                    java.io.File photoFile = new java.io.File(fileService.getFilePath(task.getPhotoFilePath()));
+                    bot.execute(SendPhoto.builder()
+                        .chatId(chatId)
+                        .photo(new InputFile(photoFile))
+                        .caption(text)
+                        .replyMarkup(StudentKeyboards.cancelOnly())
+                        .build());
+                } catch (Exception photoEx) {
+                    log.warn("Could not send photo for task {}: {}", task.getId(), photoEx.getMessage());
+                    bot.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly()).build());
+                }
+            } else {
+                bot.execute(SendMessage.builder()
+                    .chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly()).build());
+            }
         } catch (Exception e) {
             log.error("handleSituationalConfirm error: {}", e.getMessage());
         }

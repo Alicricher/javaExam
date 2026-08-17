@@ -78,8 +78,9 @@ public class StudentBotApplication {
 
     @Bean
     public TestHandler testHandler(TelegramClient bot, StateManager sm, TestService ts,
-                                   TestRepository tr, ResultRepository rr, StudentRepository sr) {
-        return new TestHandler(bot, sm, ts, tr, rr, sr);
+                                   TestRepository tr, ResultRepository rr, StudentRepository sr,
+                                   FileService fs) {
+        return new TestHandler(bot, sm, ts, tr, rr, sr, fs);
     }
 
     @Bean
@@ -89,8 +90,9 @@ public class StudentBotApplication {
 
     @Bean
     public SituationalHandler situationalHandler(TelegramClient bot, StateManager sm, TestService ts,
-                                                  LessonRepository lr, ResultRepository rr, StudentRepository sr) {
-        return new SituationalHandler(bot, sm, ts, lr, rr, sr);
+                                                  LessonRepository lr, ResultRepository rr, StudentRepository sr,
+                                                  FileService fs) {
+        return new SituationalHandler(bot, sm, ts, lr, rr, sr, fs);
     }
 
     @Bean

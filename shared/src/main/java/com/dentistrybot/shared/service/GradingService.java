@@ -131,7 +131,8 @@ public class GradingService {
 
     private GradingResult gradeWithPrompt(String systemPromptText, String taskText, String answerText) {
         String userMsg = String.format(
-            "[VAZIYATLI TOPSHIRIQ SHARTI]\n%s\n\n[TALABANING JAVOBI]\n%s\n",
+            "[VAZIYATLI TOPSHIRIQ SHARTI]\n%s\n\n[TALABANING JAVOBI]\n%s\n\n" +
+            "Feedback va izohlarni talabaning javob yozgan tilida (o'zbek yoki rus tilida) yozing.",
             taskText, answerText);
 
         Map<String, Object> requestBody = new HashMap<>();

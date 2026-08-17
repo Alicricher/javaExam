@@ -10,6 +10,7 @@ public class Student {
     private String groupName;
     private String subgroup;
     private String faculty;
+    private String language = "uz";
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -35,6 +36,9 @@ public class Student {
 
     public String getFaculty() { return faculty; }
     public void setFaculty(String faculty) { this.faculty = faculty; }
+
+    public String getLanguage() { return language != null ? language : "uz"; }
+    public void setLanguage(String language) { this.language = language; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

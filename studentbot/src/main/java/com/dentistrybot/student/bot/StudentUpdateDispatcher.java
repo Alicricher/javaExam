@@ -7,6 +7,7 @@ import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.handler.*;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
+import com.dentistrybot.student.localization.Lang;
 import com.dentistrybot.student.localization.UzMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,12 +112,13 @@ public class StudentUpdateDispatcher {
             if (!exists) registrationHandler.startRegistration(chatId, telegramId);
             else {
                 var student = studentRepository.getStudentByTelegramId(telegramId);
+                String lang = student != null ? student.getLanguage() : "uz";
                 String text = student != null
-                    ? String.format(UzMessages.MSG_WELCOME_BACK, student.getFullName())
+                    ? Lang.msgWelcomeBack(lang, student.getFullName())
                     : UzMessages.MSG_WELCOME;
                 try {
                     bot.execute(SendMessage.builder().chatId(chatId).text(text)
-                        .replyMarkup(StudentKeyboards.mainMenu()).build());
+                        .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
                 } catch (Exception e) { log.error("start message error: {}", e.getMessage()); }
             }
             return;
@@ -155,17 +157,22 @@ public class StudentUpdateDispatcher {
             case StateConstants.EDIT_COURSE, StateConstants.EDIT_GROUP,
                  StateConstants.EDIT_SUBGROUP, StateConstants.EDIT_FACULTY ->
                 profileHandler.handleProfileEditText(message);
-            case StateConstants.REGISTER_FULL_NAME, StateConstants.REGISTER_COURSE,
-                 StateConstants.REGISTER_GROUP, StateConstants.REGISTER_SUBGROUP,
-                 StateConstants.REGISTER_FACULTY ->
+            case StateConstants.REGISTER_LANGUAGE, StateConstants.REGISTER_FULL_NAME,
+                 StateConstants.REGISTER_COURSE, StateConstants.REGISTER_GROUP,
+                 StateConstants.REGISTER_SUBGROUP, StateConstants.REGISTER_FACULTY ->
                 registrationHandler.handleRegistrationStep(message);
             default -> {
-                if (UzMessages.BTN_START_LEARNING.equals(message.getText())) lessonHandler.showUnits(chatId);
-                else if (UzMessages.BTN_PROFILE.equals(message.getText())) profileHandler.showProfile(chatId, telegramId);
+                String txt = message.getText();
+                boolean isStartLearning = Lang.btnStartLearning("uz").equals(txt) || Lang.btnStartLearning("ru").equals(txt);
+                boolean isProfile = Lang.btnProfile("uz").equals(txt) || Lang.btnProfile("ru").equals(txt);
+                if (isStartLearning) lessonHandler.showUnits(chatId);
+                else if (isProfile) profileHandler.showProfile(chatId, telegramId);
                 else if (StateConstants.IDLE.equals(state) || state.isEmpty()) {
+                    var student = studentRepository.getStudentByTelegramId(telegramId);
+                    String lang = student != null ? student.getLanguage() : "uz";
                     try {
-                        bot.execute(SendMessage.builder().chatId(chatId).text(UzMessages.MSG_MAIN_MENU)
-                            .replyMarkup(StudentKeyboards.mainMenu()).build());
+                        bot.execute(SendMessage.builder().chatId(chatId).text(Lang.msgMainMenu(lang))
+                            .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
                     } catch (Exception e) { log.error("default menu error: {}", e.getMessage()); }
                 }
             }
@@ -180,8 +187,9 @@ public class StudentUpdateDispatcher {
 
         boolean exists = studentRepository.studentExists(telegramId);
         boolean isRegCallback = registrationHandler.isInRegistration(telegramId) &&
-            (data.startsWith(StudentKeyboards.CB_COURSE) || data.startsWith(StudentKeyboards.CB_GROUP) ||
-             data.startsWith(StudentKeyboards.CB_SUBGROUP) || data.startsWith(StudentKeyboards.CB_FACULTY));
+            (data.startsWith(StudentKeyboards.CB_LANG) || data.startsWith(StudentKeyboards.CB_COURSE) ||
+             data.startsWith(StudentKeyboards.CB_GROUP) || data.startsWith(StudentKeyboards.CB_SUBGROUP) ||
+             data.startsWith(StudentKeyboards.CB_FACULTY));
 
         if (!exists && !isRegCallback) {
             try { bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId())
@@ -193,15 +201,23 @@ public class StudentUpdateDispatcher {
         if (StudentKeyboards.CB_CANCEL.equals(data)) {
             stateManager.clearState(telegramId);
             try {
+                var student = studentRepository.getStudentByTelegramId(telegramId);
+                String lang = student != null ? student.getLanguage() : "uz";
                 bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId()).build());
                 bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
-                bot.execute(SendMessage.builder().chatId(chatId).text(UzMessages.MSG_MAIN_MENU)
-                    .replyMarkup(StudentKeyboards.mainMenu()).build());
+                bot.execute(SendMessage.builder().chatId(chatId).text(Lang.msgMainMenu(lang))
+                    .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
             } catch (Exception e) { log.error("cancel callback error: {}", e.getMessage()); }
             return;
         }
 
-        if (data.startsWith(StudentKeyboards.CB_UNIT)) lessonHandler.handleUnitCallback(callback);
+        if (data.startsWith(StudentKeyboards.CB_LANG)) {
+            String lang = data.substring(StudentKeyboards.CB_LANG.length());
+            String state = stateManager.getState(telegramId);
+            if (StateConstants.REGISTER_LANGUAGE.equals(state)) registrationHandler.handleLanguageCallback(callback, lang);
+            else profileHandler.handleLangCallback(callback, lang);
+        }
+        else if (data.startsWith(StudentKeyboards.CB_UNIT)) lessonHandler.handleUnitCallback(callback);
         else if (data.startsWith(StudentKeyboards.CB_LESSON)) lessonHandler.handleLessonCallback(callback);
         else if (data.startsWith(StudentKeyboards.CB_BACK)) lessonHandler.handleBackCallback(callback);
         else if (data.startsWith(StudentKeyboards.CB_TEST)) testHandler.handleTestCallback(callback);

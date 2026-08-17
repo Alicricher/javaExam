@@ -5,6 +5,7 @@ import com.dentistrybot.shared.model.Lesson;
 import com.dentistrybot.shared.model.SituationalTask;
 import com.dentistrybot.shared.model.TheoryMaterial;
 import com.dentistrybot.shared.model.Unit;
+import com.dentistrybot.student.localization.Lang;
 import com.dentistrybot.student.localization.UzMessages;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -40,15 +41,26 @@ public final class StudentKeyboards {
     public static final String CB_SUBGROUP     = "subgroup:";
     public static final String CB_FACULTY      = "faculty:";
     public static final String CB_EDIT_PROFILE = "edit_profile:";
+    public static final String CB_LANG         = "lang:";
 
-    public static ReplyKeyboardMarkup mainMenu() {
+    public static ReplyKeyboardMarkup mainMenu() { return mainMenu("uz"); }
+
+    public static ReplyKeyboardMarkup mainMenu(String lang) {
         KeyboardRow row1 = new KeyboardRow();
-        row1.add(new KeyboardButton(UzMessages.BTN_START_LEARNING));
+        row1.add(new KeyboardButton(Lang.btnStartLearning(lang)));
         KeyboardRow row2 = new KeyboardRow();
-        row2.add(new KeyboardButton(UzMessages.BTN_PROFILE));
+        row2.add(new KeyboardButton(Lang.btnProfile(lang)));
         return ReplyKeyboardMarkup.builder()
             .keyboard(List.of(row1, row2))
             .resizeKeyboard(true)
+            .build();
+    }
+
+    public static InlineKeyboardMarkup languageSelection() {
+        return InlineKeyboardMarkup.builder()
+            .keyboardRow(new InlineKeyboardRow(
+                btn("🇺🇿 O'zbek tili", CB_LANG + "uz"),
+                btn("🇷🇺 Русский язык", CB_LANG + "ru")))
             .build();
     }
 
@@ -86,8 +98,7 @@ public final class StudentKeyboards {
             .keyboardRow(new InlineKeyboardRow(
                 btn("A", CB_SUBGROUP + "A"),
                 btn("B", CB_SUBGROUP + "B"),
-                btn("C", CB_SUBGROUP + "C"),
-                btn("D", CB_SUBGROUP + "D")))
+                btn("C", CB_SUBGROUP + "C")))
             .build();
     }
 
@@ -202,13 +213,16 @@ public final class StudentKeyboards {
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup profileEdit() {
+    public static InlineKeyboardMarkup profileEdit() { return profileEdit("uz"); }
+
+    public static InlineKeyboardMarkup profileEdit(String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_EDIT_COURSE, CB_EDIT_PROFILE + "course")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_EDIT_GROUP, CB_EDIT_PROFILE + "group")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_EDIT_SUBGROUP, CB_EDIT_PROFILE + "subgroup")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_EDIT_FACULTY, CB_EDIT_PROFILE + "faculty")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_BACK + "main")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnEditCourse(lang), CB_EDIT_PROFILE + "course")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnEditGroup(lang), CB_EDIT_PROFILE + "group")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnEditSubgroup(lang), CB_EDIT_PROFILE + "subgroup")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnEditFaculty(lang), CB_EDIT_PROFILE + "faculty")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnEditLang(lang), CB_EDIT_PROFILE + "lang")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_BACK + "main")))
             .build();
     }
 

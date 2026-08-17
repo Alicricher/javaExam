@@ -31,6 +31,7 @@ public class StudentRepository {
         s.setGroupName(rs.getString("group_name"));
         s.setSubgroup(rs.getString("subgroup"));
         s.setFaculty(rs.getString("faculty"));
+        s.setLanguage(rs.getString("language"));
         s.setCreatedAt(rs.getObject("created_at", LocalDateTime.class));
         s.setUpdatedAt(rs.getObject("updated_at", LocalDateTime.class));
         return s;
@@ -38,8 +39,8 @@ public class StudentRepository {
 
     public Student createStudent(Student student) {
         String sql = """
-            INSERT INTO students (telegram_id, full_name, course, group_name, subgroup, faculty)
-            VALUES (:telegramId, :fullName, :course, :groupName, :subgroup, :faculty)
+            INSERT INTO students (telegram_id, full_name, course, group_name, subgroup, faculty, language)
+            VALUES (:telegramId, :fullName, :course, :groupName, :subgroup, :faculty, :language)
             RETURNING id, created_at, updated_at
             """;
         var params = new MapSqlParameterSource()
@@ -48,7 +49,8 @@ public class StudentRepository {
             .addValue("course", student.getCourse())
             .addValue("groupName", student.getGroupName())
             .addValue("subgroup", student.getSubgroup())
-            .addValue("faculty", student.getFaculty());
+            .addValue("faculty", student.getFaculty())
+            .addValue("language", student.getLanguage());
         var keyHolder = new GeneratedKeyHolder();
         jdbc.update(sql, params, keyHolder, new String[]{"id", "created_at", "updated_at"});
         var keys = keyHolder.getKeys();
@@ -62,7 +64,7 @@ public class StudentRepository {
 
     public Student getStudentByTelegramId(long telegramId) {
         String sql = """
-            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, created_at, updated_at
+            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, language, created_at, updated_at
             FROM students WHERE telegram_id = :telegramId
             """;
         var results = jdbc.query(sql, Map.of("telegramId", telegramId), STUDENT_MAPPER);
@@ -71,7 +73,7 @@ public class StudentRepository {
 
     public Student getStudentById(int id) {
         String sql = """
-            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, created_at, updated_at
+            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, language, created_at, updated_at
             FROM students WHERE id = :id
             """;
         var results = jdbc.query(sql, Map.of("id", id), STUDENT_MAPPER);
@@ -92,6 +94,11 @@ public class StudentRepository {
             .addValue("faculty", student.getFaculty())
             .addValue("updatedAt", LocalDateTime.now());
         jdbc.update(sql, params);
+    }
+
+    public void updateStudentLanguage(int studentId, String language) {
+        jdbc.update("UPDATE students SET language = :language, updated_at = :updatedAt WHERE id = :id",
+            Map.of("id", studentId, "language", language, "updatedAt", LocalDateTime.now()));
     }
 
     public void updateStudentName(int studentId, String name) {
@@ -140,11 +147,11 @@ public class StudentRepository {
             String search = filter.getFullName().trim();
             if (search.matches("\\d{1,18}")) {
                 long numericSearch = Long.parseLong(search);
-                conditions.add("(LOWER(full_name) LIKE LOWER(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
+                conditions.add("(uz_translit(full_name) LIKE uz_translit(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
                 params.addValue("studentId", numericSearch <= Integer.MAX_VALUE ? (int) numericSearch : -1);
                 params.addValue("telegramId", numericSearch);
             } else {
-                conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
+                conditions.add("uz_translit(full_name) LIKE uz_translit(:fullName)");
             }
             params.addValue("fullName", "%" + search + "%");
         }
@@ -170,7 +177,7 @@ public class StudentRepository {
         params.addValue("limit", limit).addValue("offset", filter.getOffset());
 
         String sql = """
-            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, created_at, updated_at
+            SELECT id, telegram_id, full_name, course, group_name, subgroup, faculty, language, created_at, updated_at
             FROM students
             """ + where + " ORDER BY full_name LIMIT :limit OFFSET :offset";
 
@@ -185,11 +192,11 @@ public class StudentRepository {
             String search = filter.getFullName().trim();
             if (search.matches("\\d{1,18}")) {
                 long numericSearch = Long.parseLong(search);
-                conditions.add("(LOWER(full_name) LIKE LOWER(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
+                conditions.add("(uz_translit(full_name) LIKE uz_translit(:fullName) OR id = :studentId OR telegram_id = :telegramId)");
                 params.addValue("studentId", numericSearch <= Integer.MAX_VALUE ? (int) numericSearch : -1);
                 params.addValue("telegramId", numericSearch);
             } else {
-                conditions.add("LOWER(full_name) LIKE LOWER(:fullName)");
+                conditions.add("uz_translit(full_name) LIKE uz_translit(:fullName)");
             }
             params.addValue("fullName", "%" + search + "%");
         }

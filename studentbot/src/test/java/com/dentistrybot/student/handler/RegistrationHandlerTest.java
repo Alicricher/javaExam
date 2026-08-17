@@ -5,6 +5,7 @@ import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.UserState;
+import com.dentistrybot.student.localization.Lang;
 import com.dentistrybot.student.localization.UzMessages;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
@@ -38,13 +39,43 @@ class RegistrationHandlerTest extends HandlerTestSupport {
     }
 
     @org.junit.jupiter.api.Test
-    void startRegistration_setsStateAndSendsPrompt() throws Exception {
+    void startRegistration_setsLanguageStateAndSendsLanguageKeyboard() throws Exception {
         handler.startRegistration(CHAT_ID, TELEGRAM_ID);
 
-        verify(stateManager).setState(TELEGRAM_ID, StateConstants.REGISTER_FULL_NAME);
+        verify(stateManager).setState(TELEGRAM_ID, StateConstants.REGISTER_LANGUAGE);
         List<SendMessage> sent = executedOf(bot, SendMessage.class);
         assertThat(sent).hasSize(1);
-        assertThat(sent.get(0).getText()).contains(UzMessages.MSG_ENTER_FULL_NAME);
+        assertThat(sent.get(0).getText()).isEqualTo(Lang.msgSelectLanguage());
+    }
+
+    @org.junit.jupiter.api.Test
+    void handleLanguageCallback_uz_setsFullNameStateAndEditsMessage() throws Exception {
+        handler.handleLanguageCallback(callbackWithData(""), "uz");
+
+        ArgumentCaptor<RegistrationHandler.RegData> captor = ArgumentCaptor.forClass(RegistrationHandler.RegData.class);
+        verify(stateManager).setStateWithData(eq(TELEGRAM_ID), eq(StateConstants.REGISTER_FULL_NAME), captor.capture());
+        assertThat(captor.getValue().language).isEqualTo("uz");
+
+        List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
+        assertThat(edits.get(0).getText()).contains(Lang.msgEnterFullName("uz"));
+    }
+
+    @org.junit.jupiter.api.Test
+    void handleLanguageCallback_ru_setsFullNameStateAndEditsMessage() throws Exception {
+        handler.handleLanguageCallback(callbackWithData(""), "ru");
+
+        ArgumentCaptor<RegistrationHandler.RegData> captor = ArgumentCaptor.forClass(RegistrationHandler.RegData.class);
+        verify(stateManager).setStateWithData(eq(TELEGRAM_ID), eq(StateConstants.REGISTER_FULL_NAME), captor.capture());
+        assertThat(captor.getValue().language).isEqualTo("ru");
+
+        List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
+        assertThat(edits.get(0).getText()).contains(Lang.msgEnterFullName("ru"));
+    }
+
+    @org.junit.jupiter.api.Test
+    void isInRegistration_trueForLanguageState() {
+        when(stateManager.getState(TELEGRAM_ID)).thenReturn(StateConstants.REGISTER_LANGUAGE);
+        assertThat(handler.isInRegistration(TELEGRAM_ID)).isTrue();
     }
 
     @org.junit.jupiter.api.Test

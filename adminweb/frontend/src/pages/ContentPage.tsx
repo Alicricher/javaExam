@@ -13,8 +13,10 @@ import {
   getLessonTest, createTest, updateTest, deleteTest,
   getQuestions, getQuestion, createQuestion, updateQuestion, deleteQuestion, moveQuestion, clearQuestions,
   updateOption, setCorrectOption, importQuestions, downloadTemplate,
+  uploadQuestionPhoto, deleteQuestionPhoto,
   getLessonTheory, createTheory, updateTheory, deleteTheory, downloadTheoryFile,
   getLessonTasks, createTask, updateTask, deleteTask,
+  uploadTaskPhoto, deleteTaskPhoto,
 } from '../api/api'
 
 const { Title, Text } = Typography
@@ -22,11 +24,11 @@ const { Title, Text } = Typography
 interface Unit { id: number; name: string; titleUz: string }
 interface Lesson { id: number; unitId: number; lessonNumber: number; titleUz: string }
 interface Test { id: number; lessonId: number; titleUz: string; timeLimitMinutes: number; totalPoints: number }
-interface Question { id: number; testId: number; questionText: string; points: number; orderNum: number }
+interface Question { id: number; testId: number; questionText: string; points: number; orderNum: number; photoFilePath?: string }
 interface AnswerOption { id: number; questionId: number; optionText: string; isCorrect: boolean; orderNum: number }
-interface QuestionWithOptions { id: number; testId: number; questionText: string; points: number; orderNum: number; options: AnswerOption[] }
+interface QuestionWithOptions { id: number; testId: number; questionText: string; points: number; orderNum: number; photoFilePath?: string; options: AnswerOption[] }
 interface TheoryMaterial { id: number; lessonId: number; titleUz: string; materialType: string; filePath: string; description: string }
-interface Task { id: number; lessonId: number; taskText: string; timeLimitMinutes: number; orderNum: number }
+interface Task { id: number; lessonId: number; taskText: string; timeLimitMinutes: number; orderNum: number; photoFilePath?: string }
 
 const materialTypes = [
   { value: 'material', label: 'Material' },
@@ -572,6 +574,7 @@ function QuestionEditor({ question, onUpdate }: { question: QuestionWithOptions;
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
   const [savingOptionId, setSavingOptionId] = useState<number | null>(null)
+  const [photoLoading, setPhotoLoading] = useState(false)
 
   useEffect(() => {
     form.setFieldsValue({ questionText: question.questionText, points: question.points })
@@ -634,6 +637,48 @@ function QuestionEditor({ question, onUpdate }: { question: QuestionWithOptions;
             }}>To'g'ri</Button>}
           </div>
         ))}
+      </div>
+      <div style={{ marginTop: 12, borderTop: '1px solid #f0f0f0', paddingTop: 10 }}>
+        <Text strong>Savol rasmi:</Text>
+        {question.photoFilePath && (
+          <div style={{ marginTop: 6, marginBottom: 6 }}>
+            <Tag color="blue" style={{ marginBottom: 4 }}>Rasm yuklangan</Tag>
+            <Button danger size="small" loading={photoLoading} onClick={async () => {
+              try {
+                setPhotoLoading(true)
+                await deleteQuestionPhoto(question.id)
+                message.success("Rasm o'chirildi")
+                onUpdate()
+              } catch (err) {
+                message.error(getErrorMessage(err, "Rasmni o'chirishda xatolik"))
+              } finally {
+                setPhotoLoading(false)
+              }
+            }}>Rasmni o'chirish</Button>
+          </div>
+        )}
+        <Upload
+          accept="image/*"
+          showUploadList={false}
+          customRequest={async ({ file, onSuccess, onError }) => {
+            try {
+              setPhotoLoading(true)
+              await uploadQuestionPhoto(question.id, file as File)
+              message.success('Rasm yuklandi')
+              onUpdate()
+              onSuccess?.('ok')
+            } catch (err) {
+              message.error(getErrorMessage(err, 'Rasmni yuklashda xatolik'))
+              onError?.(err as Error)
+            } finally {
+              setPhotoLoading(false)
+            }
+          }}
+        >
+          <Button size="small" icon={<UploadOutlined />} loading={photoLoading} style={{ marginTop: 4 }}>
+            {question.photoFilePath ? 'Rasmni almashtirish' : 'Rasm yuklash'}
+          </Button>
+        </Upload>
       </div>
     </div>
   )
@@ -786,6 +831,7 @@ function TasksTab({ lesson }: { lesson: Lesson }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [modal, setModal] = useState<{ open: boolean; task: Task | null }>({ open: false, task: null })
   const [saving, setSaving] = useState<'submit' | 'delete' | null>(null)
+  const [photoLoadingId, setPhotoLoadingId] = useState<number | null>(null)
   const [form] = Form.useForm()
 
   const load = async () => {
@@ -835,11 +881,48 @@ function TasksTab({ lesson }: { lesson: Lesson }) {
           { title: 'ID', dataIndex: 'id', width: 70 },
           { title: 'Matn', dataIndex: 'taskText', ellipsis: true },
           { title: 'Vaqt', dataIndex: 'timeLimitMinutes', width: 90, render: (v: number) => `${v} daq` },
+          { title: 'Rasm', dataIndex: 'photoFilePath', width: 70, render: (v: string) => v ? <Tag color="blue">✓</Tag> : <Tag>-</Tag> },
           {
-            title: 'Amallar', key: 'actions', width: 120,
+            title: 'Amallar', key: 'actions', width: 200,
             render: (_: unknown, r: Task) => (
               <Space>
                 <Button size="small" icon={<EditOutlined />} onClick={() => openModal(r)} />
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  customRequest={async ({ file, onSuccess, onError }) => {
+                    try {
+                      setPhotoLoadingId(r.id)
+                      await uploadTaskPhoto(r.id, file as File)
+                      message.success('Rasm yuklandi')
+                      load()
+                      onSuccess?.('ok')
+                    } catch (err) {
+                      message.error(getErrorMessage(err, 'Rasmni yuklashda xatolik'))
+                      onError?.(err as Error)
+                    } finally {
+                      setPhotoLoadingId(null)
+                    }
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />} loading={photoLoadingId === r.id} title="Rasm yuklash" />
+                </Upload>
+                {r.photoFilePath && (
+                  <Popconfirm title="Rasmni o'chirishni tasdiqlaysizmi?" onConfirm={async () => {
+                    try {
+                      setPhotoLoadingId(r.id)
+                      await deleteTaskPhoto(r.id)
+                      message.success("Rasm o'chirildi")
+                      load()
+                    } catch (err) {
+                      message.error(getErrorMessage(err, "Rasmni o'chirishda xatolik"))
+                    } finally {
+                      setPhotoLoadingId(null)
+                    }
+                  }} okText="Ha" cancelText="Yo'q">
+                    <Button size="small" danger icon={<DeleteOutlined />} loading={photoLoadingId === r.id} title="Rasmni o'chirish" />
+                  </Popconfirm>
+                )}
                 <Popconfirm title="Topshiriqni o'chirishni tasdiqlaysizmi?" onConfirm={async () => {
                   try {
                     setSaving('delete')

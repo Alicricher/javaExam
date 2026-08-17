@@ -2,8 +2,10 @@ package com.dentistrybot.admin.api;
 
 import com.dentistrybot.shared.model.SituationalTask;
 import com.dentistrybot.shared.repository.LessonRepository;
+import com.dentistrybot.shared.service.FileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -12,9 +14,11 @@ import java.util.Map;
 public class TaskController {
 
     private final LessonRepository lessonRepo;
+    private final FileService fileService;
 
-    public TaskController(LessonRepository lessonRepo) {
+    public TaskController(LessonRepository lessonRepo, FileService fileService) {
         this.lessonRepo = lessonRepo;
+        this.fileService = fileService;
     }
 
     @PostMapping
@@ -53,5 +57,39 @@ public class TaskController {
         lessonRepo.deleteSituationalTask(id);
         lessonRepo.renumberSituationalTasks(t.getLessonId());
         return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    @PostMapping("/{id}/photo")
+    public ResponseEntity<?> uploadPhoto(@PathVariable int id,
+                                          @RequestParam("file") MultipartFile file) {
+        SituationalTask t = lessonRepo.getSituationalTaskById(id);
+        if (t == null) return ResponseEntity.notFound().build();
+        if (file.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "file required"));
+        try {
+            String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "photo.jpg";
+            String relativePath = fileService.savePhoto("photos/tasks", "t_" + id + "_" + original, file.getBytes());
+            if (t.getPhotoFilePath() != null) {
+                try { fileService.deleteFile(t.getPhotoFilePath()); } catch (Exception ignored) {}
+            }
+            lessonRepo.updateSituationalTaskPhotoFilePath(id, relativePath);
+            return ResponseEntity.ok(Map.of("photoFilePath", relativePath));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/photo")
+    public ResponseEntity<?> deletePhoto(@PathVariable int id) {
+        SituationalTask t = lessonRepo.getSituationalTaskById(id);
+        if (t == null) return ResponseEntity.notFound().build();
+        try {
+            if (t.getPhotoFilePath() != null) {
+                try { fileService.deleteFile(t.getPhotoFilePath()); } catch (Exception ignored) {}
+            }
+            lessonRepo.updateSituationalTaskPhotoFilePath(id, null);
+            return ResponseEntity.ok(Map.of("ok", true));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
     }
 }
