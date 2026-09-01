@@ -263,7 +263,7 @@ class TestHandlerTest {
         q1.setQuestionId(100);
         q1.setQuestionText("Odamda nechta doimiy tish bo'ladi?");
         q1.setOptions(List.of(opt));
-        when(testService.loadQuestionsForCaching(1)).thenReturn(List.of(q1));
+        when(testService.loadQuestionsForCaching(eq(1), any())).thenReturn(List.of(q1));
         when(testService.isTimeUp(any(Instant.class), org.mockito.ArgumentMatchers.anyInt())).thenReturn(false);
         when(testService.getRemainingTime(any(Instant.class), org.mockito.ArgumentMatchers.anyInt()))
             .thenReturn(java.time.Duration.ofMinutes(15));

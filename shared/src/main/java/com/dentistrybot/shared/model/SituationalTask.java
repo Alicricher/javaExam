@@ -7,6 +7,7 @@ public class SituationalTask {
     private int lessonId;
     private int orderNum;
     private String taskText;
+    private String taskTextRu;
     private int timeLimitMinutes;
     private boolean isActive;
     private String photoFilePath;
@@ -25,6 +26,13 @@ public class SituationalTask {
 
     public String getTaskText() { return taskText; }
     public void setTaskText(String taskText) { this.taskText = taskText; }
+
+    public String getTaskTextRu() { return taskTextRu; }
+    public void setTaskTextRu(String taskTextRu) { this.taskTextRu = taskTextRu; }
+
+    public String textFor(String lang) {
+        return "ru".equals(lang) && taskTextRu != null ? taskTextRu : taskText;
+    }
 
     public int getTimeLimitMinutes() { return timeLimitMinutes; }
     public void setTimeLimitMinutes(int timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; }

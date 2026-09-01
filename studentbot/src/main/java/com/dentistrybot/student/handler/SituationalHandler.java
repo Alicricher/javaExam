@@ -160,7 +160,7 @@ public class SituationalHandler {
 
             long sec = testService.getRemainingTime(sd.getStartedAt(), sd.getTimeLimitMinutes()).getSeconds();
             String timeStr = String.format("%d:%02d", sec / 60, sec % 60);
-            String text = Lang.msgSituationalTask(lang, task.getTaskText()) + "\n\n" + Lang.msgRemainingTimeLabel(lang) + timeStr;
+            String text = Lang.msgSituationalTask(lang, task.textFor(lang)) + "\n\n" + Lang.msgRemainingTimeLabel(lang) + timeStr;
 
             if (task.getPhotoFilePath() != null) {
                 try {
@@ -314,7 +314,7 @@ public class SituationalHandler {
             SituationalTask task = lessonRepository.getSituationalTaskById(sd.getTaskId());
             long sec = testService.getRemainingTime(sd.getStartedAt(), sd.getTimeLimitMinutes()).getSeconds();
             String text = Lang.msgSituationalTask(lang,
-                task != null ? task.getTaskText() : "") + "\n\n" + Lang.msgRemainingTimeLabel(lang)
+                task != null ? task.textFor(lang) : "") + "\n\n" + Lang.msgRemainingTimeLabel(lang)
                 + String.format("%d:%02d", sec / 60, sec % 60);
             bot.execute(SendMessage.builder().chatId(chatId).text(text)
                 .replyMarkup(StudentKeyboards.cancelOnly(lang)).build());

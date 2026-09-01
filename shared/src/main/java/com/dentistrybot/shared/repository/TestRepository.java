@@ -44,6 +44,7 @@ public class TestRepository {
         t.setId(rs.getInt("id"));
         t.setLessonId(rs.getInt("lesson_id"));
         t.setTitleUz(rs.getString("title_uz"));
+        t.setTitleRu(rs.getString("title_ru"));
         t.setTimeLimitMinutes(rs.getInt("time_limit_minutes"));
         t.setTotalPoints(rs.getInt("total_points"));
         t.setActive(rs.getBoolean("is_active"));
@@ -56,6 +57,7 @@ public class TestRepository {
         q.setId(rs.getInt("id"));
         q.setTestId(rs.getInt("test_id"));
         q.setQuestionText(rs.getString("question_text"));
+        q.setQuestionTextRu(rs.getString("question_text_ru"));
         q.setPoints(rs.getInt("points"));
         q.setOrderNum(rs.getInt("order_num"));
         q.setPhotoFilePath(rs.getString("photo_file_path"));
@@ -68,6 +70,7 @@ public class TestRepository {
         o.setId(rs.getInt("id"));
         o.setQuestionId(rs.getInt("question_id"));
         o.setOptionText(rs.getString("option_text"));
+        o.setOptionTextRu(rs.getString("option_text_ru"));
         o.setCorrect(rs.getBoolean("is_correct"));
         o.setOrderNum(rs.getInt("order_num"));
         return o;
@@ -77,7 +80,7 @@ public class TestRepository {
 
     public Test getTestByLessonId(int lessonId) {
         String sql = """
-            SELECT id, lesson_id, title_uz, time_limit_minutes, total_points, is_active, created_at
+            SELECT id, lesson_id, title_uz, title_ru, time_limit_minutes, total_points, is_active, created_at
             FROM tests WHERE lesson_id = :lessonId AND is_active = TRUE LIMIT 1
             """;
         var results = jdbc.query(sql, Map.of("lessonId", lessonId), TEST_MAPPER);
@@ -86,7 +89,7 @@ public class TestRepository {
 
     public Test getTestById(int id) {
         String sql = """
-            SELECT id, lesson_id, title_uz, time_limit_minutes, total_points, is_active, created_at
+            SELECT id, lesson_id, title_uz, title_ru, time_limit_minutes, total_points, is_active, created_at
             FROM tests WHERE id = :id
             """;
         var results = jdbc.query(sql, Map.of("id", id), TEST_MAPPER);
@@ -137,7 +140,7 @@ public class TestRepository {
 
     public List<Question> getQuestionsByTestId(int testId) {
         String sql = """
-            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at
+            SELECT id, test_id, question_text, question_text_ru, points, order_num, photo_file_path, created_at
             FROM questions WHERE test_id = :testId ORDER BY order_num
             """;
         return jdbc.query(sql, Map.of("testId", testId), QUESTION_MAPPER);
@@ -145,14 +148,14 @@ public class TestRepository {
 
     public Question getQuestionById(int id) {
         var results = jdbc.query("""
-            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at FROM questions WHERE id = :id
+            SELECT id, test_id, question_text, question_text_ru, points, order_num, photo_file_path, created_at FROM questions WHERE id = :id
             """, Map.of("id", id), QUESTION_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }
 
     public List<Question> getQuestionsByTestIdPaginated(int testId, int limit, int offset) {
         String sql = """
-            SELECT id, test_id, question_text, points, order_num, photo_file_path, created_at
+            SELECT id, test_id, question_text, question_text_ru, points, order_num, photo_file_path, created_at
             FROM questions WHERE test_id = :testId ORDER BY order_num LIMIT :limit OFFSET :offset
             """;
         return jdbc.query(sql,
@@ -239,7 +242,7 @@ public class TestRepository {
 
     public List<AnswerOption> getAnswerOptionsByQuestionId(int questionId) {
         String sql = """
-            SELECT id, question_id, option_text, is_correct, order_num
+            SELECT id, question_id, option_text, option_text_ru, is_correct, order_num
             FROM answer_options WHERE question_id = :questionId ORDER BY order_num
             """;
         return jdbc.query(sql, Map.of("questionId", questionId), OPTION_MAPPER);
@@ -247,7 +250,7 @@ public class TestRepository {
 
     public AnswerOption getAnswerOptionById(int id) {
         var results = jdbc.query("""
-            SELECT id, question_id, option_text, is_correct, order_num FROM answer_options WHERE id = :id
+            SELECT id, question_id, option_text, option_text_ru, is_correct, order_num FROM answer_options WHERE id = :id
             """, Map.of("id", id), OPTION_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }

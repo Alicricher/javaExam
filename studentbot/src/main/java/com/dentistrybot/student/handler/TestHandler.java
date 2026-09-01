@@ -103,7 +103,7 @@ public class TestHandler {
             String attemptPrefix = nextAttempt > 1 ? Lang.msgUrinish(lang, nextAttempt) + "\n\n" : "";
             String prefix = retakePrefix + attemptPrefix;
             String text = prefix + Lang.msgTestStart(lang,
-                test.getTitleUz(), qCount, test.getTimeLimitMinutes(), test.getTotalPoints());
+                test.titleFor(lang), qCount, test.getTimeLimitMinutes(), test.getTotalPoints());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
                 .replyMarkup(StudentKeyboards.testConfirm(test.getId(), lang)).build());
@@ -116,6 +116,7 @@ public class TestHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             if (isInTest(telegramId)) { answerCallback(callback.getId()); return; }
 
@@ -134,7 +135,7 @@ public class TestHandler {
             int attemptNumber = resultRepository.getAllTestAttempts(student.getId(), testId).size() + 1;
             TestResult result = testService.startTest(student.getId(), testId, isRetake);
             Test test = testRepository.getTestById(testId);
-            List<CachedQuestionData> questions = testService.loadQuestionsForCaching(testId);
+            List<CachedQuestionData> questions = testService.loadQuestionsForCaching(testId, lang);
 
             TestStateData sd = new TestStateData();
             sd.setTestId(testId);

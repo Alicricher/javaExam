@@ -100,6 +100,10 @@ public class TestService {
     }
 
     public List<CachedQuestionData> loadQuestionsForCaching(int testId) {
+        return loadQuestionsForCaching(testId, "uz");
+    }
+
+    public List<CachedQuestionData> loadQuestionsForCaching(int testId, String lang) {
         List<Question> questions = testRepository.getQuestionsByTestId(testId);
         List<CachedQuestionData> cached = new ArrayList<>();
         for (Question q : questions) {
@@ -107,14 +111,14 @@ public class TestService {
             if (qwo == null) continue;
             CachedQuestionData cq = new CachedQuestionData();
             cq.setQuestionId(q.getId());
-            cq.setQuestionText(q.getQuestionText());
+            cq.setQuestionText(q.textFor(lang));
             cq.setPoints(q.getPoints());
             cq.setPhotoFilePath(q.getPhotoFilePath());
             List<CachedOptionData> options = new ArrayList<>();
             for (AnswerOption opt : qwo.getOptions()) {
                 CachedOptionData co = new CachedOptionData();
                 co.setOptionId(opt.getId());
-                co.setOptionText(opt.getOptionText());
+                co.setOptionText(opt.textFor(lang));
                 co.setCorrect(opt.isCorrect());
                 options.add(co);
             }

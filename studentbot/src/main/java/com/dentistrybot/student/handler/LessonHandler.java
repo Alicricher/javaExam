@@ -94,7 +94,7 @@ public class LessonHandler {
                 new LessonMenuStateData(lesson.getUnitId(), lessonId));
             answerCallback(callback.getId());
             String text = Lang.msgLessonMenu(lang,
-                unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.getTitleUz());
+                unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.titleFor(lang));
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
                 .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId(), lang)).build());
@@ -136,7 +136,7 @@ public class LessonHandler {
                 stateManager.setStateWithData(telegramId, StateConstants.LESSON_MENU,
                     new LessonMenuStateData(lesson.getUnitId(), lessonId));
                 String text = Lang.msgLessonMenu(lang,
-                    unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.getTitleUz());
+                    unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.titleFor(lang));
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId).text(text)
                     .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId(), lang)).build());

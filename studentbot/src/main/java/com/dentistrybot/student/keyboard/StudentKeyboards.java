@@ -125,10 +125,10 @@ public final class StudentKeyboards {
         for (int i = 0; i < lessons.size(); i += 2) {
             InlineKeyboardRow row = new InlineKeyboardRow();
             Lesson l1 = lessons.get(i);
-            row.add(btn(l1.getLessonNumber() + "-dars: " + l1.getTitleUz(), CB_LESSON + l1.getId()));
+            row.add(btn(l1.getLessonNumber() + "-dars: " + l1.titleFor(lang), CB_LESSON + l1.getId()));
             if (i + 1 < lessons.size()) {
                 Lesson l2 = lessons.get(i + 1);
-                row.add(btn(l2.getLessonNumber() + "-dars: " + l2.getTitleUz(), CB_LESSON + l2.getId()));
+                row.add(btn(l2.getLessonNumber() + "-dars: " + l2.titleFor(lang), CB_LESSON + l2.getId()));
             }
             rows.add(row);
         }

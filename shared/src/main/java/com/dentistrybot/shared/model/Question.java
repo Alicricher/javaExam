@@ -6,6 +6,7 @@ public class Question {
     private int id;
     private int testId;
     private String questionText;
+    private String questionTextRu;
     private int points;
     private int orderNum;
     private String photoFilePath;
@@ -21,6 +22,13 @@ public class Question {
 
     public String getQuestionText() { return questionText; }
     public void setQuestionText(String questionText) { this.questionText = questionText; }
+
+    public String getQuestionTextRu() { return questionTextRu; }
+    public void setQuestionTextRu(String questionTextRu) { this.questionTextRu = questionTextRu; }
+
+    public String textFor(String lang) {
+        return "ru".equals(lang) && questionTextRu != null ? questionTextRu : questionText;
+    }
 
     public int getPoints() { return points; }
     public void setPoints(int points) { this.points = points; }

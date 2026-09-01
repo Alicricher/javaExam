@@ -42,6 +42,7 @@ public class LessonRepository {
         l.setUnitId(rs.getInt("unit_id"));
         l.setLessonNumber(rs.getInt("lesson_number"));
         l.setTitleUz(rs.getString("title_uz"));
+        l.setTitleRu(rs.getString("title_ru"));
         l.setCreatedAt(rs.getObject("created_at", LocalDateTime.class));
         return l;
     };
@@ -64,6 +65,7 @@ public class LessonRepository {
         t.setLessonId(rs.getInt("lesson_id"));
         t.setOrderNum(rs.getInt("order_num"));
         t.setTaskText(rs.getString("task_text"));
+        t.setTaskTextRu(rs.getString("task_text_ru"));
         t.setTimeLimitMinutes(rs.getInt("time_limit_minutes"));
         t.setActive(rs.getBoolean("is_active"));
         t.setPhotoFilePath(rs.getString("photo_file_path"));
@@ -128,7 +130,7 @@ public class LessonRepository {
 
     public List<Lesson> getLessonsByUnitId(int unitId) {
         String sql = """
-            SELECT id, unit_id, lesson_number, title_uz, created_at
+            SELECT id, unit_id, lesson_number, title_uz, title_ru, created_at
             FROM lessons WHERE unit_id = :unitId ORDER BY lesson_number
             """;
         return jdbc.query(sql, Map.of("unitId", unitId), LESSON_MAPPER);
@@ -136,7 +138,7 @@ public class LessonRepository {
 
     public Lesson getLessonById(int id) {
         var results = jdbc.query(
-            "SELECT id, unit_id, lesson_number, title_uz, created_at FROM lessons WHERE id = :id",
+            "SELECT id, unit_id, lesson_number, title_uz, title_ru, created_at FROM lessons WHERE id = :id",
             Map.of("id", id), LESSON_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }
@@ -255,7 +257,7 @@ public class LessonRepository {
 
     public List<SituationalTask> getSituationalTasksByLessonId(int lessonId) {
         String sql = """
-            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, photo_file_path, created_at
+            SELECT id, lesson_id, order_num, task_text, task_text_ru, time_limit_minutes, is_active, photo_file_path, created_at
             FROM situational_tasks WHERE lesson_id = :lessonId AND is_active = TRUE ORDER BY order_num
             """;
         return jdbc.query(sql, Map.of("lessonId", lessonId), TASK_MAPPER);
@@ -263,7 +265,7 @@ public class LessonRepository {
 
     public SituationalTask getSituationalTaskById(int id) {
         String sql = """
-            SELECT id, lesson_id, order_num, task_text, time_limit_minutes, is_active, photo_file_path, created_at
+            SELECT id, lesson_id, order_num, task_text, task_text_ru, time_limit_minutes, is_active, photo_file_path, created_at
             FROM situational_tasks WHERE id = :id
             """;
         var results = jdbc.query(sql, Map.of("id", id), TASK_MAPPER);

@@ -6,6 +6,7 @@ public class Test {
     private int id;
     private int lessonId;
     private String titleUz;
+    private String titleRu;
     private int timeLimitMinutes;
     private int totalPoints;
     private boolean isActive;
@@ -21,6 +22,13 @@ public class Test {
 
     public String getTitleUz() { return titleUz; }
     public void setTitleUz(String titleUz) { this.titleUz = titleUz; }
+
+    public String getTitleRu() { return titleRu; }
+    public void setTitleRu(String titleRu) { this.titleRu = titleRu; }
+
+    public String titleFor(String lang) {
+        return "ru".equals(lang) && titleRu != null ? titleRu : titleUz;
+    }
 
     public int getTimeLimitMinutes() { return timeLimitMinutes; }
     public void setTimeLimitMinutes(int timeLimitMinutes) { this.timeLimitMinutes = timeLimitMinutes; }
