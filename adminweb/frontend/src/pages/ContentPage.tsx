@@ -503,50 +503,55 @@ function TestTab({ lesson }: { lesson: Lesson }) {
         </Popconfirm>
       </Space>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(360px, 430px) minmax(0, 1fr)', gap: 16 }}>
-        <Table
-          rowKey="id"
-          size="small"
-          dataSource={questions}
-          loading={loading}
-          pagination={{ current: page, total, pageSize: 15, onChange: p => loadQuestions(test.id, p), size: 'small' }}
-          onRow={r => ({ onClick: () => loadQuestion(r.id), style: { cursor: 'pointer', background: selectedQuestion?.id === r.id ? '#e6f4ff' : undefined } })}
-          columns={[
-            { title: '#', dataIndex: 'orderNum', width: 45 },
-            { title: 'ID', dataIndex: 'id', width: 65 },
-            { title: pick(lang, 'Savol', 'Вопрос'), dataIndex: 'questionText', ellipsis: true },
-            { title: pick(lang, 'Ball', 'Балл'), dataIndex: 'points', width: 60 },
-            {
-              title: '', key: 'actions', width: 110,
-              render: (_: unknown, r: Question) => (
-                <Space size={2}>
-                  <Button size="small" type="text" icon={<ArrowUpOutlined />} onClick={e => { e.stopPropagation(); handleMove(r.id, 'up') }} />
-                  <Button size="small" type="text" icon={<ArrowDownOutlined />} onClick={e => { e.stopPropagation(); handleMove(r.id, 'down') }} />
-                  <Popconfirm title={pick(lang, "Savolni o'chirishni tasdiqlaysizmi?", 'Удалить вопрос?')} onConfirm={async () => {
-                    try {
-                      await deleteQuestion(r.id)
-                      message.success(pick(lang, "Savol o'chirildi", 'Вопрос удалён'))
-                      setSelectedQuestion(null)
-                      loadQuestions(test.id, page)
-                      loadTest()
-                    } catch (err) {
-                      message.error(getErrorMessage(err, pick(lang, "Savolni o'chirishda xatolik", 'Ошибка при удалении вопроса')))
-                    }
-                  }} okText={pick(lang, "Ha", "Да")} cancelText={pick(lang, "Yo'q", "Нет")}>
-                    <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={e => e.stopPropagation()} />
-                  </Popconfirm>
-                </Space>
-              ),
-            },
-          ]}
-        />
+      <Table
+        rowKey="id"
+        size="small"
+        dataSource={questions}
+        loading={loading}
+        pagination={{ current: page, total, pageSize: 15, onChange: p => loadQuestions(test.id, p), size: 'small' }}
+        onRow={r => ({ onClick: () => loadQuestion(r.id), style: { cursor: 'pointer' } })}
+        columns={[
+          { title: '#', dataIndex: 'orderNum', width: 45 },
+          { title: 'ID', dataIndex: 'id', width: 65 },
+          { title: pick(lang, 'Savol', 'Вопрос'), dataIndex: 'questionText', ellipsis: true },
+          { title: pick(lang, 'Ball', 'Балл'), dataIndex: 'points', width: 60 },
+          {
+            title: '', key: 'actions', width: 110,
+            render: (_: unknown, r: Question) => (
+              <Space size={2}>
+                <Button size="small" type="text" icon={<ArrowUpOutlined />} onClick={e => { e.stopPropagation(); handleMove(r.id, 'up') }} />
+                <Button size="small" type="text" icon={<ArrowDownOutlined />} onClick={e => { e.stopPropagation(); handleMove(r.id, 'down') }} />
+                <Popconfirm title={pick(lang, "Savolni o'chirishni tasdiqlaysizmi?", 'Удалить вопрос?')} onConfirm={async () => {
+                  try {
+                    await deleteQuestion(r.id)
+                    message.success(pick(lang, "Savol o'chirildi", 'Вопрос удалён'))
+                    setSelectedQuestion(null)
+                    loadQuestions(test.id, page)
+                    loadTest()
+                  } catch (err) {
+                    message.error(getErrorMessage(err, pick(lang, "Savolni o'chirishda xatolik", 'Ошибка при удалении вопроса')))
+                  }
+                }} okText={pick(lang, "Ha", "Да")} cancelText={pick(lang, "Yo'q", "Нет")}>
+                  <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={e => e.stopPropagation()} />
+                </Popconfirm>
+              </Space>
+            ),
+          },
+        ]}
+      />
 
-        {selectedQuestion ? (
+      <Modal
+        title={pick(lang, 'Savolni tahrirlash', 'Редактировать вопрос')}
+        width={800}
+        open={!!selectedQuestion}
+        onCancel={() => setSelectedQuestion(null)}
+        footer={null}
+        destroyOnHidden
+      >
+        {selectedQuestion && (
           <QuestionEditor question={selectedQuestion} onUpdate={() => { loadQuestions(test.id, page); loadQuestion(selectedQuestion.id); loadTest() }} />
-        ) : (
-          <Text type="secondary">{pick(lang, 'Tahrirlash uchun savol tanlang.', 'Выберите вопрос для редактирования.')}</Text>
         )}
-      </div>
+      </Modal>
 
       <Modal title={pick(lang, 'Test sozlamalari', 'Настройки теста')} open={testModal} confirmLoading={saving === 'test'} onOk={handleUpdateTest} onCancel={() => setTestModal(false)} okText={pick(lang, 'Saqlash', 'Сохранить')}>
         <Form form={testForm} layout="vertical">
@@ -616,7 +621,7 @@ function QuestionEditor({ question, onUpdate }: { question: QuestionWithOptions;
   }
 
   return (
-    <div style={{ border: '1px solid #e8e8e8', borderRadius: 6, padding: 12, minWidth: 0 }}>
+    <div>
       <Space style={{ marginBottom: 8 }}><Tag>ID: {question.id}</Tag><Tag>#{question.orderNum}</Tag></Space>
       <Form form={form} layout="vertical">
         <Form.Item name="questionText" label={pick(lang, 'Savol matni', 'Текст вопроса')}><Input.TextArea autoSize={{ minRows: 6, maxRows: 16 }} /></Form.Item>
