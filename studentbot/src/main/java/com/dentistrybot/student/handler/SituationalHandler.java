@@ -13,7 +13,7 @@ import com.dentistrybot.shared.state.SituationalStateData;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
-import com.dentistrybot.student.localization.UzMessages;
+import com.dentistrybot.student.localization.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
@@ -60,10 +60,16 @@ public class SituationalHandler {
         this.fileService = fileService;
     }
 
+    private String langFor(long telegramId) {
+        Student s = studentRepository.getStudentByTelegramId(telegramId);
+        return s != null ? s.getLanguage() : "uz";
+    }
+
     public void handleSituationalCallback(CallbackQuery callback) {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             int lessonId = Integer.parseInt(callback.getData().substring(StudentKeyboards.CB_SIT.length()));
             List<SituationalTask> tasks = lessonRepository.getSituationalTasksByLessonId(lessonId);
@@ -71,8 +77,8 @@ public class SituationalHandler {
 
             if (tasks.isEmpty()) {
                 bot.execute(EditMessageText.builder()
-                    .chatId(chatId).messageId(messageId).text(UzMessages.MSG_NO_TASK_AVAILABLE)
-                    .replyMarkup(backToLesson(lessonId)).build());
+                    .chatId(chatId).messageId(messageId).text(Lang.msgNoTaskAvailable(lang))
+                    .replyMarkup(backToLesson(lessonId, lang)).build());
                 return;
             }
 
@@ -82,11 +88,10 @@ public class SituationalHandler {
             List<Integer> taskIds = tasks.stream().map(SituationalTask::getId).toList();
             Set<Integer> answeredIds = resultRepository.getSubmittedTaskIds(student.getId(), taskIds).keySet();
 
-            String text = String.format("📋 Vaziyatli masalalar (%d ta)\nBajarilgan: %d/%d\n\nMasalani tanlang:",
-                tasks.size(), answeredIds.size(), tasks.size());
+            String text = Lang.msgSituationalTaskListHeader(lang, tasks.size(), answeredIds.size());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.situationalTaskList(tasks, answeredIds, lessonId)).build());
+                .replyMarkup(StudentKeyboards.situationalTaskList(tasks, answeredIds, lessonId, lang)).build());
         } catch (Exception e) {
             log.error("handleSituationalCallback error: {}", e.getMessage());
         }
@@ -96,6 +101,7 @@ public class SituationalHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             int taskId = Integer.parseInt(callback.getData().substring(StudentKeyboards.CB_SIT_TASK.length()));
             SituationalTask task = lessonRepository.getSituationalTaskById(taskId);
@@ -110,17 +116,17 @@ public class SituationalHandler {
                 } catch (Exception ex) {
                     bot.execute(EditMessageText.builder()
                         .chatId(chatId).messageId(messageId)
-                        .text("✅ " + task.getOrderNum() + "-masala\n\nSiz bu masalaga allaqachon javob bergansiz.\nQayta topshirish uchun administrator bilan bog'laning.")
-                        .replyMarkup(backToSitList(task.getLessonId())).build());
+                        .text(Lang.msgAlreadySubmittedShort(lang, task.getOrderNum()))
+                        .replyMarkup(backToSitList(task.getLessonId(), lang)).build());
                     return;
                 }
             }
 
             String text = task.getOrderNum() + "-masala\n\n" +
-                String.format(UzMessages.MSG_SITUATIONAL_START, task.getOrderNum(), task.getTimeLimitMinutes());
+                Lang.msgSituationalStart(lang, task.getTimeLimitMinutes());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.situationalConfirm(task.getId())).build());
+                .replyMarkup(StudentKeyboards.situationalConfirm(task.getId(), lang)).build());
         } catch (Exception e) {
             log.error("handleTaskSelectCallback error: {}", e.getMessage());
         }
@@ -130,6 +136,7 @@ public class SituationalHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             if (isInSituational(telegramId)) { answerCallback(callback.getId()); return; }
 
@@ -153,7 +160,7 @@ public class SituationalHandler {
 
             long sec = testService.getRemainingTime(sd.getStartedAt(), sd.getTimeLimitMinutes()).getSeconds();
             String timeStr = String.format("%d:%02d", sec / 60, sec % 60);
-            String text = String.format(UzMessages.MSG_SITUATIONAL_TASK, task.getTaskText()) + "\n\nQolgan vaqt: " + timeStr;
+            String text = Lang.msgSituationalTask(lang, task.getTaskText()) + "\n\n" + Lang.msgRemainingTimeLabel(lang) + timeStr;
 
             if (task.getPhotoFilePath() != null) {
                 try {
@@ -162,15 +169,15 @@ public class SituationalHandler {
                         .chatId(chatId)
                         .photo(new InputFile(photoFile))
                         .caption(text)
-                        .replyMarkup(StudentKeyboards.cancelOnly())
+                        .replyMarkup(StudentKeyboards.cancelOnly(lang))
                         .build());
                 } catch (Exception photoEx) {
                     log.warn("Could not send photo for task {}: {}", task.getId(), photoEx.getMessage());
-                    bot.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly()).build());
+                    bot.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly(lang)).build());
                 }
             } else {
                 bot.execute(SendMessage.builder()
-                    .chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly()).build());
+                    .chatId(chatId).text(text).replyMarkup(StudentKeyboards.cancelOnly(lang)).build());
             }
         } catch (Exception e) {
             log.error("handleSituationalConfirm error: {}", e.getMessage());
@@ -180,6 +187,7 @@ public class SituationalHandler {
     public void handleSituationalAnswer(Message message) {
         long telegramId = message.getFrom().getId();
         long chatId = message.getChatId();
+        String lang = langFor(telegramId);
         try {
             UserState us = stateManager.getStateWithData(telegramId);
             SituationalStateData sd = stateManager.getStateData(us, SituationalStateData.class);
@@ -192,23 +200,23 @@ public class SituationalHandler {
             }
 
             if (testService.shouldShowWarning(sd.getStartedAt(), sd.getTimeLimitMinutes())) {
-                sendText(chatId, UzMessages.MSG_SITUATIONAL_TIME_WARNING);
+                sendText(chatId, Lang.msgSituationalTimeWarning(lang));
             }
 
             // Photo rejected for student bot
             if (message.getPhoto() != null && !message.getPhoto().isEmpty()) {
-                sendText(chatId, "Faqat matn javobini yuboring. Rasm qabul qilinmaydi.");
+                sendText(chatId, Lang.msgOnlyTextAnswer(lang));
                 return;
             }
 
             if (message.getText() == null || message.getText().isBlank()) {
-                sendText(chatId, "Iltimos, javobingizni matn yoki rasm sifatida yuboring.");
+                sendText(chatId, Lang.msgPleaseSendTextAnswer(lang));
                 return;
             }
 
             sd.setAnswerText(message.getText());
             stateManager.setStateWithData(telegramId, StateConstants.SITUATIONAL_CONFIRM_ANSWER, sd);
-            showAnswerConfirmation(chatId, sd);
+            showAnswerConfirmation(chatId, sd, lang);
         } catch (Exception e) {
             log.error("handleSituationalAnswer error: {}", e.getMessage());
         }
@@ -218,6 +226,7 @@ public class SituationalHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             UserState us = stateManager.getStateWithData(telegramId);
             SituationalStateData sd = stateManager.getStateData(us, SituationalStateData.class);
@@ -245,17 +254,17 @@ public class SituationalHandler {
                 stateManager.clearState(telegramId);
                 bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
                 String errMsg = ex.getMessage() != null && (ex.getMessage().contains("unique") || ex.getMessage().contains("duplicate"))
-                    ? "Siz bu vaziyatli masalaga allaqachon javob bergansiz."
-                    : "Xatolik yuz berdi. Javobingiz saqlanmadi.";
+                    ? Lang.msgAlreadySubmitted(lang)
+                    : Lang.msgAnswerNotSavedError(lang);
                 bot.execute(SendMessage.builder().chatId(chatId).text(errMsg)
-                    .replyMarkup(StudentKeyboards.mainMenu()).build());
+                    .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
                 return;
             }
 
             stateManager.clearState(telegramId);
             bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
 
-            String successText = "✅ " + sd.getTaskNumber() + "-masala javob qabul qilindi!";
+            String successText = Lang.msgAnswerAccepted(lang, sd.getTaskNumber());
             List<SituationalTask> allTasks = lessonRepository.getSituationalTasksByLessonId(sd.getLessonId());
             SituationalTask nextTask = null;
             for (SituationalTask t : allTasks) {
@@ -269,15 +278,15 @@ public class SituationalHandler {
             if (nextTask != null) {
                 kb = InlineKeyboardMarkup.builder()
                     .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                        .text("➡️ " + nextTask.getOrderNum() + "-masalaga o'tish")
+                        .text(Lang.msgGoToNextTask(lang, nextTask.getOrderNum()))
                         .callbackData(StudentKeyboards.CB_SIT_TASK + nextTask.getId()).build()))
                     .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                        .text(UzMessages.BTN_BACK)
+                        .text(Lang.btnBack(lang))
                         .callbackData(StudentKeyboards.CB_BACK + "lesson:" + sd.getLessonId()).build()))
                     .build();
             } else {
-                successText = "🎉 Barcha vaziyatli masalalar bajarildi!";
-                kb = backToLesson(sd.getLessonId());
+                successText = Lang.msgAllTasksCompleted(lang);
+                kb = backToLesson(sd.getLessonId(), lang);
             }
 
             bot.execute(SendMessage.builder().chatId(chatId).text(successText).replyMarkup(kb).build());
@@ -290,6 +299,7 @@ public class SituationalHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             UserState us = stateManager.getStateWithData(telegramId);
             SituationalStateData sd = stateManager.getStateData(us, SituationalStateData.class);
@@ -303,10 +313,11 @@ public class SituationalHandler {
 
             SituationalTask task = lessonRepository.getSituationalTaskById(sd.getTaskId());
             long sec = testService.getRemainingTime(sd.getStartedAt(), sd.getTimeLimitMinutes()).getSeconds();
-            String text = String.format(UzMessages.MSG_SITUATIONAL_TASK,
-                task != null ? task.getTaskText() : "") + "\n\nQolgan vaqt: " + String.format("%d:%02d", sec / 60, sec % 60);
+            String text = Lang.msgSituationalTask(lang,
+                task != null ? task.getTaskText() : "") + "\n\n" + Lang.msgRemainingTimeLabel(lang)
+                + String.format("%d:%02d", sec / 60, sec % 60);
             bot.execute(SendMessage.builder().chatId(chatId).text(text)
-                .replyMarkup(StudentKeyboards.cancelOnly()).build());
+                .replyMarkup(StudentKeyboards.cancelOnly(lang)).build());
         } catch (Exception e) {
             log.error("handleEditAnswer error: {}", e.getMessage());
         }
@@ -318,6 +329,7 @@ public class SituationalHandler {
     }
 
     public void forceCompleteSituational(long chatId, long telegramId) {
+        String lang = langFor(telegramId);
         try {
             UserState us = stateManager.getStateWithData(telegramId);
             if (us != null) {
@@ -338,14 +350,15 @@ public class SituationalHandler {
             }
             stateManager.clearState(telegramId);
             bot.execute(SendMessage.builder().chatId(chatId)
-                .text(UzMessages.MSG_SITUATIONAL_TIME_UP)
-                .replyMarkup(StudentKeyboards.mainMenu()).build());
+                .text(Lang.msgSituationalTimeUp(lang))
+                .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
         } catch (Exception e) {
             log.error("forceCompleteSituational error: {}", e.getMessage());
         }
     }
 
     private void handleTimeoutWithSave(long chatId, long telegramId, SituationalStateData sd, String extraText) {
+        String lang = langFor(telegramId);
         try {
             String answerText = sd.getAnswerText();
             if (!extraText.isEmpty()) answerText = extraText;
@@ -359,48 +372,48 @@ public class SituationalHandler {
                     answer.setSubmittedAt(LocalDateTime.now());
                     try { resultRepository.createSituationalAnswer(answer); }
                     catch (Exception ex) { log.error("handleTimeoutWithSave error: {}", ex.getMessage()); }
-                    sendText(chatId, UzMessages.MSG_SITUATIONAL_TIME_UP + "\n\nJavobingiz saqlandi.");
+                    sendText(chatId, Lang.msgSituationalTimeUp(lang) + "\n\n" + Lang.msgAnswerSaved(lang));
                     stateManager.clearState(telegramId);
                     return;
                 }
             }
-            sendText(chatId, UzMessages.MSG_SITUATIONAL_TIME_UP);
+            sendText(chatId, Lang.msgSituationalTimeUp(lang));
             stateManager.clearState(telegramId);
         } catch (Exception e) {
             log.error("handleTimeoutWithSave error: {}", e.getMessage());
         }
     }
 
-    private void showAnswerConfirmation(long chatId, SituationalStateData sd) {
+    private void showAnswerConfirmation(long chatId, SituationalStateData sd, String lang) {
         try {
-            StringBuilder sb = new StringBuilder("Javobingizni tasdiqlaysizmi?\n\n");
+            StringBuilder sb = new StringBuilder(Lang.msgConfirmYourAnswer(lang));
             if (sd.getPhotoFileId() != null && !sd.getPhotoFileId().isEmpty())
-                sb.append("📷 Rasm: Yuklangan\n\n");
+                sb.append(Lang.msgPhotoUploadedLabel(lang));
             if (sd.getAnswerText() != null && !sd.getAnswerText().isEmpty()) {
                 String preview = sd.getAnswerText().length() > 300
                     ? sd.getAnswerText().substring(0, 300) + "..." : sd.getAnswerText();
-                sb.append("Javob: ").append(preview).append("\n");
+                sb.append(Lang.msgAnswerLabel(lang)).append(preview).append("\n");
             }
-            sb.append("\n\n⚠️ Tasdiqlangandan keyin javobni o'zgartirish mumkin emas!");
+            sb.append(Lang.msgCannotEditAfterConfirm(lang));
             bot.execute(SendMessage.builder().chatId(chatId).text(sb.toString())
-                .replyMarkup(StudentKeyboards.situationalAnswerConfirm()).build());
+                .replyMarkup(StudentKeyboards.situationalAnswerConfirm(lang)).build());
         } catch (Exception e) {
             log.error("showAnswerConfirmation error: {}", e.getMessage());
         }
     }
 
-    private InlineKeyboardMarkup backToLesson(int lessonId) {
+    private InlineKeyboardMarkup backToLesson(int lessonId, String lang) {
         return InlineKeyboardMarkup.builder()
             .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                .text(UzMessages.BTN_BACK)
+                .text(Lang.btnBack(lang))
                 .callbackData(StudentKeyboards.CB_BACK + "lesson:" + lessonId).build()))
             .build();
     }
 
-    private InlineKeyboardMarkup backToSitList(int lessonId) {
+    private InlineKeyboardMarkup backToSitList(int lessonId, String lang) {
         return InlineKeyboardMarkup.builder()
             .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                .text(UzMessages.BTN_BACK)
+                .text(Lang.btnBack(lang))
                 .callbackData(StudentKeyboards.CB_SIT + lessonId).build()))
             .build();
     }

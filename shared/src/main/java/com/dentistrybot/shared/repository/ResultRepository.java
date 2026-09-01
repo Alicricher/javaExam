@@ -381,6 +381,35 @@ public class ResultRepository {
             """, Map.of("testId", testId));
     }
 
+    /** Per-student breakdown backing the PDF report ("kim sdal kim yo'q") - same
+     * best-attempt-per-student / completed-only logic as getGroupStatsByTestId, so
+     * the detail rows always agree with the aggregate numbers shown above them. */
+    public List<java.util.Map<String, Object>> getStudentResultDetailsByTestId(int testId) {
+        return jdbc.queryForList("""
+            WITH best_per_student AS (
+                SELECT DISTINCT ON (tr.student_id)
+                    s.full_name,
+                    s.group_name,
+                    s.subgroup,
+                    tr.score,
+                    tr.max_score
+                FROM test_results tr
+                JOIN students s ON tr.student_id = s.id
+                WHERE tr.test_id = :testId AND tr.status = 'completed'
+                ORDER BY tr.student_id, tr.score DESC, tr.completed_at DESC
+            )
+            SELECT
+                full_name,
+                group_name,
+                subgroup,
+                score,
+                max_score,
+                (max_score > 0 AND score::float / max_score >= 0.6) AS passed
+            FROM best_per_student
+            ORDER BY group_name, subgroup, full_name
+            """, Map.of("testId", testId));
+    }
+
     // ==================== TEST ANSWERS ====================
 
     public TestAnswer createTestAnswer(TestAnswer answer) {

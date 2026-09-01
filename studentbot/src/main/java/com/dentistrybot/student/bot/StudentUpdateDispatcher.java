@@ -8,7 +8,6 @@ import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.handler.*;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
 import com.dentistrybot.student.localization.Lang;
-import com.dentistrybot.student.localization.UzMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
@@ -115,7 +114,7 @@ public class StudentUpdateDispatcher {
                 String lang = student != null ? student.getLanguage() : "uz";
                 String text = student != null
                     ? Lang.msgWelcomeBack(lang, student.getFullName())
-                    : UzMessages.MSG_WELCOME;
+                    : Lang.msgWelcome(lang);
                 try {
                     bot.execute(SendMessage.builder().chatId(chatId).text(text)
                         .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
@@ -132,10 +131,11 @@ public class StudentUpdateDispatcher {
 
         UserState userState = stateManager.getStateWithData(telegramId);
         String state = userState != null ? userState.getState() : StateConstants.IDLE;
+        String lang = studentLang(telegramId);
 
         if (StateConstants.IN_TEST.equals(state)) {
             if (testHandler.checkTestTimeout(telegramId)) testHandler.forceCompleteTest(chatId, telegramId);
-            else sendText(chatId, "Test jarayonida. Iltimos, testni yakunlang.");
+            else sendText(chatId, Lang.msgTestInProgress(lang));
             return;
         }
 
@@ -149,7 +149,7 @@ public class StudentUpdateDispatcher {
             }
             if (timedOut) situationalHandler.forceCompleteSituational(chatId, telegramId);
             else if (message.getText() != null) situationalHandler.handleSituationalAnswer(message);
-            else if (message.getPhoto() != null) sendText(chatId, "Faqat matn javobini yuboring. Rasm qabul qilinmaydi.");
+            else if (message.getPhoto() != null) sendText(chatId, Lang.msgOnlyTextAnswer(lang));
             return;
         }
 
@@ -165,11 +165,9 @@ public class StudentUpdateDispatcher {
                 String txt = message.getText();
                 boolean isStartLearning = Lang.btnStartLearning("uz").equals(txt) || Lang.btnStartLearning("ru").equals(txt);
                 boolean isProfile = Lang.btnProfile("uz").equals(txt) || Lang.btnProfile("ru").equals(txt);
-                if (isStartLearning) lessonHandler.showUnits(chatId);
+                if (isStartLearning) lessonHandler.showUnits(chatId, studentLang(telegramId));
                 else if (isProfile) profileHandler.showProfile(chatId, telegramId);
                 else if (StateConstants.IDLE.equals(state) || state.isEmpty()) {
-                    var student = studentRepository.getStudentByTelegramId(telegramId);
-                    String lang = student != null ? student.getLanguage() : "uz";
                     try {
                         bot.execute(SendMessage.builder().chatId(chatId).text(Lang.msgMainMenu(lang))
                             .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
@@ -193,7 +191,7 @@ public class StudentUpdateDispatcher {
 
         if (!exists && !isRegCallback) {
             try { bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId())
-                .text("Iltimos, avval ro'yxatdan o'ting.").build()); }
+                .text(Lang.msgPleaseRegisterFirst("uz")).build()); }
             catch (Exception e) { log.error("answerCallback error: {}", e.getMessage()); }
             return;
         }
@@ -260,6 +258,11 @@ public class StudentUpdateDispatcher {
             try { bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId()).build()); }
             catch (Exception e) { log.error("default callback answer error: {}", e.getMessage()); }
         }
+    }
+
+    private String studentLang(long telegramId) {
+        var student = studentRepository.getStudentByTelegramId(telegramId);
+        return student != null ? student.getLanguage() : "uz";
     }
 
     private long getUserId(Update update) {

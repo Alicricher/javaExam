@@ -120,7 +120,7 @@ class AuthControllerTest {
         when(auth.getName()).thenReturn("prof");
         var authority = mock(org.springframework.security.core.GrantedAuthority.class);
         when(authority.getAuthority()).thenReturn("ROLE_ZAV_KAFEDRA");
-        when(auth.getAuthorities()).thenReturn(java.util.List.of(authority));
+        doReturn(java.util.List.of(authority)).when(auth).getAuthorities();
 
         var response = new AuthController(mock(AuthenticationManager.class)).me(auth);
 

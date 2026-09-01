@@ -1,5 +1,6 @@
 package com.dentistrybot.admin.api;
 
+import com.dentistrybot.admin.security.AccessControlService;
 import com.dentistrybot.shared.model.*;
 import com.dentistrybot.shared.repository.LessonRepository;
 import com.dentistrybot.shared.repository.TestRepository;
@@ -7,6 +8,7 @@ import com.dentistrybot.shared.service.FileService;
 import com.dentistrybot.shared.service.ImportService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,13 +23,32 @@ public class TestController {
     private final LessonRepository lessonRepo;
     private final ImportService importService;
     private final FileService fileService;
+    private final AccessControlService accessControl;
 
     public TestController(TestRepository testRepo, LessonRepository lessonRepo,
-                          ImportService importService, FileService fileService) {
+                          ImportService importService, FileService fileService,
+                          AccessControlService accessControl) {
         this.testRepo = testRepo;
         this.lessonRepo = lessonRepo;
         this.importService = importService;
         this.fileService = fileService;
+        this.accessControl = accessControl;
+    }
+
+    private Integer unitIdForLesson(int lessonId) {
+        return lessonRepo.getUnitIdForLesson(lessonId);
+    }
+
+    private Integer unitIdForTest(Test t) {
+        return t != null ? testRepo.getUnitIdForTest(t.getId()) : null;
+    }
+
+    private Integer unitIdForQuestion(Question q) {
+        return q != null ? testRepo.getUnitIdForQuestion(q.getId()) : null;
+    }
+
+    private boolean forbidden(Authentication auth, Integer unitId) {
+        return unitId == null || !accessControl.canManageUnit(auth, unitId);
     }
 
     // ===== TESTS =====
@@ -40,11 +61,12 @@ public class TestController {
     }
 
     @PostMapping("/api/tests")
-    public ResponseEntity<?> createTest(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> createTest(@RequestBody Map<String, Object> body, Authentication auth) {
         Object lessonIdObj = body.get("lessonId");
         Object timeObj = body.get("timeLimitMinutes");
         if (lessonIdObj == null) return ResponseEntity.badRequest().body(Map.of("error", "lessonId required"));
         int lessonId = Integer.parseInt(lessonIdObj.toString());
+        if (forbidden(auth, unitIdForLesson(lessonId))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         int timeLimit = timeObj != null ? Integer.parseInt(timeObj.toString()) : 30;
         var test = new Test();
         test.setLessonId(lessonId);
@@ -55,9 +77,10 @@ public class TestController {
     }
 
     @PutMapping("/api/tests/{id}")
-    public ResponseEntity<?> updateTest(@PathVariable int id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> updateTest(@PathVariable int id, @RequestBody Map<String, Object> body, Authentication auth) {
         Test t = testRepo.getTestById(id);
         if (t == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForTest(t))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (body.containsKey("timeLimitMinutes"))
             t.setTimeLimitMinutes(Integer.parseInt(body.get("timeLimitMinutes").toString()));
         if (body.containsKey("titleUz"))
@@ -67,9 +90,10 @@ public class TestController {
     }
 
     @DeleteMapping("/api/tests/{id}")
-    public ResponseEntity<?> deleteTest(@PathVariable int id) {
+    public ResponseEntity<?> deleteTest(@PathVariable int id, Authentication auth) {
         Test t = testRepo.getTestById(id);
         if (t == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForTest(t))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         testRepo.deleteTest(id);
         return ResponseEntity.ok(Map.of("ok", true));
     }
@@ -93,9 +117,10 @@ public class TestController {
     }
 
     @PostMapping("/api/tests/{testId}/questions")
-    public ResponseEntity<?> createQuestion(@PathVariable int testId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> createQuestion(@PathVariable int testId, @RequestBody Map<String, Object> body, Authentication auth) {
         Test test = testRepo.getTestById(testId);
         if (test == null || !test.isActive()) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForTest(test))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
 
         String questionText = (String) body.get("questionText");
         if (questionText == null || questionText.isBlank())
@@ -136,9 +161,10 @@ public class TestController {
     }
 
     @PutMapping("/api/questions/{id}")
-    public ResponseEntity<?> updateQuestion(@PathVariable int id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> updateQuestion(@PathVariable int id, @RequestBody Map<String, Object> body, Authentication auth) {
         Question q = testRepo.getQuestionById(id);
         if (q == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForQuestion(q))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (body.containsKey("questionText")) q.setQuestionText((String) body.get("questionText"));
         if (body.containsKey("points")) q.setPoints(Integer.parseInt(body.get("points").toString()));
         testRepo.updateQuestion(q);
@@ -146,18 +172,21 @@ public class TestController {
     }
 
     @DeleteMapping("/api/questions/{id}")
-    public ResponseEntity<?> deleteQuestion(@PathVariable int id) {
+    public ResponseEntity<?> deleteQuestion(@PathVariable int id, Authentication auth) {
         Question q = testRepo.getQuestionById(id);
         if (q == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForQuestion(q))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         testRepo.deleteQuestion(id, q.getTestId());
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
     @PostMapping("/api/questions/{id}/photo")
     public ResponseEntity<?> uploadQuestionPhoto(@PathVariable int id,
-                                                  @RequestParam("file") MultipartFile file) {
+                                                  @RequestParam("file") MultipartFile file,
+                                                  Authentication auth) {
         Question q = testRepo.getQuestionById(id);
         if (q == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForQuestion(q))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (file.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "file required"));
         try {
             String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "photo.jpg";
@@ -173,9 +202,10 @@ public class TestController {
     }
 
     @DeleteMapping("/api/questions/{id}/photo")
-    public ResponseEntity<?> deleteQuestionPhoto(@PathVariable int id) {
+    public ResponseEntity<?> deleteQuestionPhoto(@PathVariable int id, Authentication auth) {
         Question q = testRepo.getQuestionById(id);
         if (q == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForQuestion(q))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         try {
             if (q.getPhotoFilePath() != null) {
                 try { fileService.deleteFile(q.getPhotoFilePath()); } catch (Exception ignored) {}
@@ -188,9 +218,10 @@ public class TestController {
     }
 
     @PostMapping("/api/questions/{id}/move")
-    public ResponseEntity<?> moveQuestion(@PathVariable int id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> moveQuestion(@PathVariable int id, @RequestBody Map<String, String> body, Authentication auth) {
         Question q = testRepo.getQuestionById(id);
         if (q == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, unitIdForQuestion(q))) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         String direction = body.get("direction");
         List<Question> all = testRepo.getQuestionsByTestId(q.getTestId());
         int idx = -1;
@@ -206,7 +237,9 @@ public class TestController {
     }
 
     @DeleteMapping("/api/tests/{testId}/questions")
-    public ResponseEntity<?> clearQuestions(@PathVariable int testId) {
+    public ResponseEntity<?> clearQuestions(@PathVariable int testId, Authentication auth) {
+        if (forbidden(auth, testRepo.getUnitIdForTest(testId)))
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         testRepo.deleteAllQuestions(testId);
         return ResponseEntity.ok(Map.of("ok", true));
     }
@@ -216,9 +249,12 @@ public class TestController {
     @PutMapping("/api/questions/{questionId}/options/{optId}")
     public ResponseEntity<?> updateOption(@PathVariable int questionId,
                                           @PathVariable int optId,
-                                          @RequestBody Map<String, Object> body) {
+                                          @RequestBody Map<String, Object> body,
+                                          Authentication auth) {
         AnswerOption opt = testRepo.getAnswerOptionById(optId);
         if (opt == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, testRepo.getUnitIdForQuestion(questionId)))
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (body.containsKey("optionText")) opt.setOptionText((String) body.get("optionText"));
         if (body.containsKey("isCorrect")) opt.setCorrect(Boolean.parseBoolean(body.get("isCorrect").toString()));
         testRepo.updateAnswerOption(opt);
@@ -226,7 +262,9 @@ public class TestController {
     }
 
     @PutMapping("/api/questions/{questionId}/correct")
-    public ResponseEntity<?> setCorrect(@PathVariable int questionId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> setCorrect(@PathVariable int questionId, @RequestBody Map<String, Object> body, Authentication auth) {
+        if (forbidden(auth, testRepo.getUnitIdForQuestion(questionId)))
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         Object optIdObj = body.get("optionId");
         if (optIdObj == null) return ResponseEntity.badRequest().body(Map.of("error", "optionId required"));
         testRepo.setCorrectAnswer(questionId, Integer.parseInt(optIdObj.toString()));
@@ -237,7 +275,10 @@ public class TestController {
 
     @PostMapping("/api/tests/{testId}/questions/import")
     public ResponseEntity<?> importQuestions(@PathVariable int testId,
-                                             @RequestParam("file") MultipartFile file) {
+                                             @RequestParam("file") MultipartFile file,
+                                             Authentication auth) {
+        if (forbidden(auth, testRepo.getUnitIdForTest(testId)))
+            return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (file.isEmpty()) return ResponseEntity.badRequest().body(Map.of("error", "file required"));
         String originalName = file.getOriginalFilename();
         try {

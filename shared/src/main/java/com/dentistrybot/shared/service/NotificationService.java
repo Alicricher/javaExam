@@ -37,15 +37,16 @@ public class NotificationService {
             var student = studentRepository.getStudentById(answer.getStudentId());
             if (student == null) return;
 
+            boolean ru = "ru".equals(student.getLanguage());
             String grade = answer.getGrade() != null ? answer.getGrade() + "/100" : "-";
             String feedback = (answer.getFeedback() != null && !answer.getFeedback().isEmpty())
-                ? answer.getFeedback() : "Izoh yo'q";
+                ? answer.getFeedback() : (ru ? "Без комментария" : "Izoh yo'q");
             String citationsLine = (answer.getCitations() != null && !answer.getCitations().isEmpty())
-                ? "\nManbalar: " + answer.getCitations() : "";
+                ? "\n" + (ru ? "Источники: " : "Manbalar: ") + answer.getCitations() : "";
 
-            String text = String.format(
-                "Vaziyatli topshirig'ingiz baholandi!\n\nBaho: %s\nIzoh: %s%s",
-                grade, feedback, citationsLine);
+            String text = ru
+                ? String.format("Ваша ситуационная задача оценена!\n\nОценка: %s\nКомментарий: %s%s", grade, feedback, citationsLine)
+                : String.format("Vaziyatli topshirig'ingiz baholandi!\n\nBaho: %s\nIzoh: %s%s", grade, feedback, citationsLine);
 
             studentBotClient.execute(SendMessage.builder()
                 .chatId(student.getTelegramId())

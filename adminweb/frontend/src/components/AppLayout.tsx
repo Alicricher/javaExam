@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Layout, Menu, Button, Segmented, Tag } from 'antd'
 import {
   TeamOutlined, FileTextOutlined, SolutionOutlined,
-  BookOutlined, LogoutOutlined, UserOutlined,
+  BookOutlined, LogoutOutlined, UserOutlined, ApartmentOutlined,
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { getMe, logout } from '../api/api'
@@ -28,7 +28,8 @@ const allMenuItems = [
   { key: '/students',           icon: <TeamOutlined />,        label: 'Talabalar',              minRole: 'PROFESSOR' },
   { key: '/results/tests',      icon: <FileTextOutlined />,    label: 'Test natijalari',        minRole: 'PROFESSOR' },
   { key: '/results/situational',icon: <SolutionOutlined />,    label: 'Vaziyatli topshiriqlar', minRole: 'PROFESSOR' },
-  { key: '/content',            icon: <BookOutlined />,        label: 'Kontent',                minRole: 'ZAV_KAFEDRA' },
+  { key: '/content',            icon: <BookOutlined />,        label: 'Kontent',                minRole: 'PROFESSOR' },
+  { key: '/professor-assignments', icon: <ApartmentOutlined />, label: 'Fanlarni biriktirish', minRole: 'ZAV_KAFEDRA' },
   { key: '/admin-users',        icon: <UserOutlined />,        label: 'Foydalanuvchilar',       minRole: 'SUPER_ADMIN' },
 ]
 

@@ -3,6 +3,7 @@ package com.dentistrybot.student.handler;
 import com.dentistrybot.shared.model.Lesson;
 import com.dentistrybot.shared.model.Unit;
 import com.dentistrybot.shared.repository.LessonRepository;
+import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.LessonMenuStateData;
 import com.dentistrybot.shared.state.StateConstants;
@@ -28,6 +29,7 @@ class LessonHandlerTest extends HandlerTestSupport {
     private TelegramClient bot;
     private StateManager stateManager;
     private LessonRepository lessonRepository;
+    private StudentRepository studentRepository;
     private LessonHandler handler;
 
     @BeforeEach
@@ -35,7 +37,8 @@ class LessonHandlerTest extends HandlerTestSupport {
         bot = mock(TelegramClient.class);
         stateManager = mock(StateManager.class);
         lessonRepository = mock(LessonRepository.class);
-        handler = new LessonHandler(bot, stateManager, lessonRepository);
+        studentRepository = mock(StudentRepository.class);
+        handler = new LessonHandler(bot, stateManager, lessonRepository, studentRepository);
     }
 
     private Unit unit(int id, String name, String titleUz) {

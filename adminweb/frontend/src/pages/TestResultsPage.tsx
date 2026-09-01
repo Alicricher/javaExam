@@ -4,7 +4,7 @@ import {
   Statistic, Progress, Modal, Descriptions, Popconfirm, message, Tabs,
 } from 'antd'
 import { SearchOutlined, EyeOutlined, ReloadOutlined, BarChartOutlined, PrinterOutlined } from '@ant-design/icons'
-import { getLessonTest, getTestResultAnswers, getTestResults, getTestGroupStats, getUnitLessons, getUnits, grantTestRetake } from '../api/api'
+import { getLessonTest, getTestResultAnswers, getTestResults, getTestGroupStats, getTestStudentDetails, getUnitLessons, getUnits, grantTestRetake } from '../api/api'
 
 const { Title, Text } = Typography
 
@@ -33,6 +33,14 @@ interface GroupStat {
   student_count: number
   passed_count: number
   avg_score_pct: number
+}
+interface StudentDetail {
+  full_name: string
+  group_name: string
+  subgroup: string
+  score: number
+  max_score: number
+  passed: boolean
 }
 interface TestAnswerDetail {
   questionId: number
@@ -79,6 +87,7 @@ export default function TestResultsPage() {
   const [answersLoading, setAnswersLoading] = useState(false)
   const [groupStats, setGroupStats] = useState<GroupStat[]>([])
   const [groupStatsLoading, setGroupStatsLoading] = useState(false)
+  const [studentDetails, setStudentDetails] = useState<StudentDetail[]>([])
   const [activeTab, setActiveTab] = useState('results')
 
   const load = async (p = page, f = filters) => {
@@ -136,10 +145,15 @@ export default function TestResultsPage() {
   const loadGroupStats = async (testId: number) => {
     setGroupStatsLoading(true)
     try {
-      const res = await getTestGroupStats(testId)
-      setGroupStats(res.data)
+      const [statsRes, detailsRes] = await Promise.all([
+        getTestGroupStats(testId),
+        getTestStudentDetails(testId),
+      ])
+      setGroupStats(statsRes.data)
+      setStudentDetails(detailsRes.data)
     } catch {
       setGroupStats([])
+      setStudentDetails([])
     } finally {
       setGroupStatsLoading(false)
     }
@@ -164,18 +178,45 @@ export default function TestResultsPage() {
       </tr>`
     }).join('')
 
+    // Per-student breakdown, grouped the same way as the summary table above it,
+    // so a reader can see exactly who passed and who didn't in each group.
+    const byGroup = new Map<string, StudentDetail[]>()
+    for (const s of studentDetails) {
+      const key = `${s.group_name} / ${s.subgroup}`
+      if (!byGroup.has(key)) byGroup.set(key, [])
+      byGroup.get(key)!.push(s)
+    }
+    const detailSections = Array.from(byGroup.entries()).map(([groupKey, students]) => {
+      const studentRows = students.map(s => {
+        const pct = s.max_score > 0 ? Math.round(s.score / s.max_score * 100) : 0
+        return `<tr>
+          <td>${s.full_name}</td>
+          <td>${s.score} / ${s.max_score} (${pct}%)</td>
+          <td class="${s.passed ? 'pass' : 'fail'}">${s.passed ? "O'tdi" : "O'tmadi"}</td>
+        </tr>`
+      }).join('')
+      return `<h3>${groupKey}</h3>
+        <table>
+          <thead><tr><th>F.I.O.</th><th>Ball</th><th>Natija</th></tr></thead>
+          <tbody>${studentRows}</tbody>
+        </table>`
+    }).join('')
+
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>Guruh statistikasi — ${testTitle}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 24px; color: #000; }
         h2 { font-size: 16px; margin-bottom: 4px; }
+        h3 { font-size: 13px; margin: 18px 0 6px; }
         .meta { font-size: 12px; color: #555; margin-bottom: 16px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
         th { background: #1677ff; color: #fff; padding: 8px 10px; text-align: left; }
         td { padding: 6px 10px; border-bottom: 1px solid #e0e0e0; }
         tr:last-child td { border-bottom: none; }
         .summary { background: #f0f4ff; font-weight: bold; }
-        @media print { body { margin: 0; } }
+        .pass { color: #237804; font-weight: bold; }
+        .fail { color: #a8071a; font-weight: bold; }
+        @media print { body { margin: 0; } h3 { page-break-after: avoid; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
       </style>
     </head><body>
       <h2>Guruh statistikasi: ${testTitle}</h2>
@@ -192,6 +233,7 @@ export default function TestResultsPage() {
           <td>—</td>
         </tr></tfoot>
       </table>
+      ${detailSections}
     </body></html>`
 
     const win = window.open('', '_blank')

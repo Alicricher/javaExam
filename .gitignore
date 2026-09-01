@@ -1,5 +1,8 @@
 /.env
 
+# Source lesson materials (not for commit)
+/lessons/
+
 # Build outputs
 target/
 dist/

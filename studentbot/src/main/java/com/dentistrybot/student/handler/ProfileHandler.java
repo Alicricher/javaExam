@@ -6,7 +6,6 @@ import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
 import com.dentistrybot.student.localization.Lang;
-import com.dentistrybot.student.localization.UzMessages;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -32,7 +31,7 @@ public class ProfileHandler {
     public void showProfile(long chatId, long telegramId) {
         try {
             Student s = studentRepository.getStudentByTelegramId(telegramId);
-            if (s == null) { sendText(chatId, UzMessages.MSG_NOT_FOUND); return; }
+            if (s == null) { sendText(chatId, Lang.msgNotFound("uz")); return; }
             String lang = s.getLanguage();
             String text = Lang.msgProfile(lang, s.getFullName(), s.getCourse(), s.getGroupName(), s.getSubgroup(), s.getFaculty());
             bot.execute(SendMessage.builder()

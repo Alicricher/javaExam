@@ -72,8 +72,8 @@ public class StudentBotApplication {
     }
 
     @Bean
-    public LessonHandler lessonHandler(TelegramClient bot, StateManager sm, LessonRepository lr) {
-        return new LessonHandler(bot, sm, lr);
+    public LessonHandler lessonHandler(TelegramClient bot, StateManager sm, LessonRepository lr, StudentRepository sr) {
+        return new LessonHandler(bot, sm, lr, sr);
     }
 
     @Bean
@@ -84,8 +84,8 @@ public class StudentBotApplication {
     }
 
     @Bean
-    public TheoryHandler theoryHandler(TelegramClient bot, StateManager sm, LessonRepository lr, FileService fs) {
-        return new TheoryHandler(bot, sm, lr, fs);
+    public TheoryHandler theoryHandler(TelegramClient bot, StateManager sm, LessonRepository lr, FileService fs, StudentRepository sr) {
+        return new TheoryHandler(bot, sm, lr, fs, sr);
     }
 
     @Bean

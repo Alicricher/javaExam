@@ -1,13 +1,15 @@
 package com.dentistrybot.student.handler;
 
 import com.dentistrybot.shared.model.Lesson;
+import com.dentistrybot.shared.model.Student;
 import com.dentistrybot.shared.model.Unit;
 import com.dentistrybot.shared.repository.LessonRepository;
+import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.state.LessonMenuStateData;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
-import com.dentistrybot.student.localization.UzMessages;
+import com.dentistrybot.student.localization.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
@@ -26,19 +28,29 @@ public class LessonHandler {
     private final TelegramClient bot;
     private final StateManager stateManager;
     private final LessonRepository lessonRepository;
+    private final StudentRepository studentRepository;
 
-    public LessonHandler(TelegramClient bot, StateManager stateManager, LessonRepository lessonRepository) {
+    public LessonHandler(TelegramClient bot, StateManager stateManager, LessonRepository lessonRepository,
+                          StudentRepository studentRepository) {
         this.bot = bot;
         this.stateManager = stateManager;
         this.lessonRepository = lessonRepository;
+        this.studentRepository = studentRepository;
     }
 
-    public void showUnits(long chatId) {
+    private String langFor(long telegramId) {
+        Student s = studentRepository.getStudentByTelegramId(telegramId);
+        return s != null ? s.getLanguage() : "uz";
+    }
+
+    public void showUnits(long chatId) { showUnits(chatId, "uz"); }
+
+    public void showUnits(long chatId, String lang) {
         try {
             List<Unit> units = lessonRepository.getAllUnits();
             bot.execute(SendMessage.builder()
                 .chatId(chatId)
-                .text(UzMessages.MSG_SELECT_UNIT)
+                .text(Lang.msgSelectUnit(lang))
                 .replyMarkup(StudentKeyboards.units(units))
                 .build());
         } catch (Exception e) {
@@ -50,6 +62,7 @@ public class LessonHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             int unitId = Integer.parseInt(callback.getData().substring(StudentKeyboards.CB_UNIT.length()));
             Unit unit = lessonRepository.getUnitById(unitId);
@@ -57,10 +70,10 @@ public class LessonHandler {
             stateManager.setStateWithData(telegramId, StateConstants.SELECT_LESSON,
                 new LessonMenuStateData(unitId, 0));
             answerCallback(callback.getId());
-            String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + UzMessages.MSG_SELECT_LESSON;
+            String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + Lang.msgSelectLesson(lang);
             EditMessageText edit = EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(lessons.isEmpty() ? null : StudentKeyboards.lessons(lessons, unitId))
+                .replyMarkup(lessons.isEmpty() ? null : StudentKeyboards.lessons(lessons, unitId, lang))
                 .build();
             bot.execute(edit);
         } catch (Exception e) {
@@ -72,6 +85,7 @@ public class LessonHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             int lessonId = Integer.parseInt(callback.getData().substring(StudentKeyboards.CB_LESSON.length()));
             Lesson lesson = lessonRepository.getLessonById(lessonId);
@@ -79,11 +93,11 @@ public class LessonHandler {
             stateManager.setStateWithData(telegramId, StateConstants.LESSON_MENU,
                 new LessonMenuStateData(lesson.getUnitId(), lessonId));
             answerCallback(callback.getId());
-            String text = String.format(UzMessages.MSG_LESSON_MENU,
+            String text = Lang.msgLessonMenu(lang,
                 unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.getTitleUz());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId())).build());
+                .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId(), lang)).build());
         } catch (Exception e) {
             log.error("handleLessonCallback error: {}", e.getMessage());
         }
@@ -93,6 +107,7 @@ public class LessonHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         String backTarget = callback.getData().substring(StudentKeyboards.CB_BACK.length());
         try {
             answerCallback(callback.getId());
@@ -100,7 +115,7 @@ public class LessonHandler {
                 List<Unit> units = lessonRepository.getAllUnits();
                 stateManager.setState(telegramId, StateConstants.SELECT_UNIT);
                 bot.execute(EditMessageText.builder()
-                    .chatId(chatId).messageId(messageId).text(UzMessages.MSG_SELECT_UNIT)
+                    .chatId(chatId).messageId(messageId).text(Lang.msgSelectUnit(lang))
                     .replyMarkup(StudentKeyboards.units(units)).build());
 
             } else if (backTarget.startsWith("lessons:")) {
@@ -109,10 +124,10 @@ public class LessonHandler {
                 List<Lesson> lessons = lessonRepository.getLessonsByUnitId(unitId);
                 stateManager.setStateWithData(telegramId, StateConstants.SELECT_LESSON,
                     new LessonMenuStateData(unitId, 0));
-                String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + UzMessages.MSG_SELECT_LESSON;
+                String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + Lang.msgSelectLesson(lang);
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId).text(text)
-                    .replyMarkup(StudentKeyboards.lessons(lessons, unitId)).build());
+                    .replyMarkup(StudentKeyboards.lessons(lessons, unitId, lang)).build());
 
             } else if (backTarget.startsWith("lesson:")) {
                 int lessonId = Integer.parseInt(backTarget.substring("lesson:".length()));
@@ -120,18 +135,18 @@ public class LessonHandler {
                 Unit unit = lessonRepository.getUnitById(lesson.getUnitId());
                 stateManager.setStateWithData(telegramId, StateConstants.LESSON_MENU,
                     new LessonMenuStateData(lesson.getUnitId(), lessonId));
-                String text = String.format(UzMessages.MSG_LESSON_MENU,
+                String text = Lang.msgLessonMenu(lang,
                     unit.getName() + " - " + lesson.getLessonNumber() + "-dars", lesson.getTitleUz());
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId).text(text)
-                    .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId())).build());
+                    .replyMarkup(StudentKeyboards.lessonMenu(lessonId, lesson.getUnitId(), lang)).build());
 
             } else if ("main".equals(backTarget)) {
                 bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
                 stateManager.clearState(telegramId);
                 bot.execute(SendMessage.builder()
-                    .chatId(chatId).text(UzMessages.MSG_MAIN_MENU)
-                    .replyMarkup(StudentKeyboards.mainMenu()).build());
+                    .chatId(chatId).text(Lang.msgMainMenu(lang))
+                    .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
             }
         } catch (Exception e) {
             log.error("handleBackCallback error: {}", e.getMessage());

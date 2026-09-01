@@ -20,6 +20,13 @@ public class LessonRepository {
         this.jdbc = jdbc;
     }
 
+    /** Used by AccessControlService to resolve which unit ("predmet") a lesson belongs to. */
+    public Integer getUnitIdForLesson(int lessonId) {
+        return jdbc.query("SELECT unit_id FROM lessons WHERE id = :lessonId",
+            Map.of("lessonId", lessonId), (rs, rn) -> rs.getInt("unit_id"))
+            .stream().findFirst().orElse(null);
+    }
+
     private static final RowMapper<Unit> UNIT_MAPPER = (rs, rowNum) -> {
         Unit u = new Unit();
         u.setId(rs.getInt("id"));

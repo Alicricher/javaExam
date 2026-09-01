@@ -1,5 +1,6 @@
 package com.dentistrybot.admin.api;
 
+import com.dentistrybot.admin.security.AccessControlService;
 import com.dentistrybot.shared.model.Lesson;
 import com.dentistrybot.shared.model.SituationalAnswer;
 import com.dentistrybot.shared.model.SituationalTask;
@@ -10,6 +11,7 @@ import com.dentistrybot.shared.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 class GradingControllerTest {
+
+    private static final Authentication AUTH = mock(Authentication.class);
+
+    /** Access-control mock that always permits - most tests aren't testing authorization. */
+    private static AccessControlService permissiveAccessControl() {
+        AccessControlService accessControl = mock(AccessControlService.class);
+        when(accessControl.canManageUnit(any(), anyInt())).thenReturn(true);
+        return accessControl;
+    }
+
+    /** Stubs the lesson/unit chain manual-mode grading needs to resolve past the access check. */
+    private static LessonRepository lessonRepoWithTask(int taskId, int lessonId, int unitId) {
+        LessonRepository lessonRepository = mock(LessonRepository.class);
+        SituationalTask task = new SituationalTask();
+        task.setId(taskId);
+        task.setLessonId(lessonId);
+        when(lessonRepository.getSituationalTaskById(taskId)).thenReturn(task);
+        when(lessonRepository.getUnitIdForLesson(lessonId)).thenReturn(unitId);
+        return lessonRepository;
+    }
 
     @Test
     void manualGradeStoresNullAdminIdAndNotifiesStudent() {
@@ -30,10 +52,11 @@ class GradingControllerTest {
 
         var response = new GradingController(
             resultRepository,
-            mock(LessonRepository.class),
+            lessonRepoWithTask(9, 3, 1),
             notificationService,
+            permissiveAccessControl(),
             null
-        ).grade(5, Map.of("mode", "manual", "grade", 85, "feedback", "Yaxshi"));
+        ).grade(5, Map.of("mode", "manual", "grade", 85, "feedback", "Yaxshi"), AUTH);
 
         ArgumentCaptor<Integer> gradedByCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(resultRepository).gradeSituationalAnswer(eq(5), eq(85), eq("Yaxshi"), gradedByCaptor.capture(), any());
@@ -48,16 +71,39 @@ class GradingControllerTest {
     @Test
     void manualGradeRejectsScoreOutsideRange() {
         ResultRepository resultRepository = mock(ResultRepository.class);
-        when(resultRepository.getSituationalAnswerById(5)).thenReturn(new SituationalAnswer());
+        SituationalAnswer answer = new SituationalAnswer();
+        answer.setId(5);
+        answer.setTaskId(9);
+        when(resultRepository.getSituationalAnswerById(5)).thenReturn(answer);
 
         var response = new GradingController(
             resultRepository,
-            mock(LessonRepository.class),
+            lessonRepoWithTask(9, 3, 1),
             mock(NotificationService.class),
+            permissiveAccessControl(),
             null
-        ).grade(5, Map.of("mode", "manual", "grade", 101));
+        ).grade(5, Map.of("mode", "manual", "grade", 101), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any(), any());
+    }
+
+    @Test
+    void manualGradeForbiddenWhenProfessorNotAssignedToUnit() {
+        ResultRepository resultRepository = mock(ResultRepository.class);
+        SituationalAnswer answer = new SituationalAnswer();
+        answer.setId(5);
+        answer.setTaskId(9);
+        when(resultRepository.getSituationalAnswerById(5)).thenReturn(answer);
+        LessonRepository lessonRepository = lessonRepoWithTask(9, 3, 1);
+        AccessControlService accessControl = mock(AccessControlService.class);
+        when(accessControl.canManageUnit(AUTH, 1)).thenReturn(false);
+
+        var response = new GradingController(
+            resultRepository, lessonRepository, mock(NotificationService.class), accessControl, null
+        ).grade(5, Map.of("mode", "manual", "grade", 85), AUTH);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         verify(resultRepository, never()).gradeSituationalAnswer(anyInt(), anyInt(), anyString(), any(), any());
     }
 
@@ -70,8 +116,9 @@ class GradingControllerTest {
             resultRepository,
             mock(LessonRepository.class),
             mock(NotificationService.class),
+            permissiveAccessControl(),
             null
-        ).grade(5, Map.of("mode", "ai"));
+        ).grade(5, Map.of("mode", "ai"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -88,8 +135,9 @@ class GradingControllerTest {
             resultRepository,
             mock(LessonRepository.class),
             mock(NotificationService.class),
+            permissiveAccessControl(),
             null
-        ).grade(5, Map.of("mode", "ai"));
+        ).grade(5, Map.of("mode", "ai"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         @SuppressWarnings("unchecked")
@@ -127,8 +175,8 @@ class GradingControllerTest {
         when(gradingService.gradeForLesson(3, "Vaziyatli topshiriq matni", "Talaba javobi"))
             .thenReturn(result);
 
-        var response = new GradingController(resultRepository, lessonRepository, notificationService, gradingService)
-            .grade(5, Map.of("mode", "ai"));
+        var response = new GradingController(resultRepository, lessonRepository, notificationService, permissiveAccessControl(), gradingService)
+            .grade(5, Map.of("mode", "ai"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         @SuppressWarnings("unchecked")
@@ -164,8 +212,8 @@ class GradingControllerTest {
             0, "", false, List.of(), List.of(), "low", true);
         when(gradingService.grade("", "javob")).thenReturn(empty);
 
-        var response = new GradingController(resultRepository, lessonRepository, mock(NotificationService.class), gradingService)
-            .grade(5, Map.of("mode", "ai"));
+        var response = new GradingController(resultRepository, lessonRepository, mock(NotificationService.class), permissiveAccessControl(), gradingService)
+            .grade(5, Map.of("mode", "ai"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(gradingService).grade("", "javob");
@@ -187,8 +235,8 @@ class GradingControllerTest {
         when(gradingService.grade(anyString(), anyString()))
             .thenThrow(new RuntimeException("OpenAI timeout"));
 
-        var response = new GradingController(resultRepository, lessonRepository, mock(NotificationService.class), gradingService)
-            .grade(5, Map.of("mode", "ai"));
+        var response = new GradingController(resultRepository, lessonRepository, mock(NotificationService.class), permissiveAccessControl(), gradingService)
+            .grade(5, Map.of("mode", "ai"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         @SuppressWarnings("unchecked")
@@ -207,8 +255,9 @@ class GradingControllerTest {
             resultRepository,
             mock(LessonRepository.class),
             mock(NotificationService.class),
+            permissiveAccessControl(),
             null
-        ).grade(5, Map.of("mode", "bogus"));
+        ).grade(5, Map.of("mode", "bogus"), AUTH);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

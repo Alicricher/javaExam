@@ -15,7 +15,7 @@ import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.TestStateData;
 import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
-import com.dentistrybot.student.localization.UzMessages;
+import com.dentistrybot.student.localization.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.dentistrybot.shared.service.FileService;
@@ -59,10 +59,16 @@ public class TestHandler {
         this.fileService = fileService;
     }
 
+    private String langFor(long telegramId) {
+        Student s = studentRepository.getStudentByTelegramId(telegramId);
+        return s != null ? s.getLanguage() : "uz";
+    }
+
     public void handleTestCallback(CallbackQuery callback) {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             int lessonId = Integer.parseInt(callback.getData().substring(StudentKeyboards.CB_TEST.length()));
             Test test = testRepository.getTestByLessonId(lessonId);
@@ -70,8 +76,8 @@ public class TestHandler {
 
             if (test == null) {
                 bot.execute(EditMessageText.builder()
-                    .chatId(chatId).messageId(messageId).text(UzMessages.MSG_NO_TEST_AVAILABLE)
-                    .replyMarkup(backToLesson(lessonId)).build());
+                    .chatId(chatId).messageId(messageId).text(Lang.msgNoTestAvailable(lang))
+                    .replyMarkup(backToLesson(lessonId, lang)).build());
                 return;
             }
 
@@ -85,20 +91,22 @@ public class TestHandler {
             if (!ok) {
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId)
-                    .text(UzMessages.MSG_ALREADY_TOOK_TEST + "\n\n" + UzMessages.MSG_NO_RETAKE_AVAILABLE)
-                    .replyMarkup(backToLesson(lessonId)).build());
+                    .text(Lang.msgAlreadyTookTest(lang) + "\n\n" + Lang.msgNoRetakeAvailable(lang))
+                    .replyMarkup(backToLesson(lessonId, lang)).build());
                 return;
             }
 
             int qCount = testService.getTotalQuestionsCount(test.getId());
             int pastAttempts = resultRepository.getAllTestAttempts(student.getId(), test.getId()).size();
             int nextAttempt = pastAttempts + 1;
-            String prefix = nextAttempt > 1 ? nextAttempt + "-urinish\n\n" : "";
-            String text = prefix + String.format(UzMessages.MSG_TEST_START,
+            String retakePrefix = "retake".equals(reason) ? Lang.msgRetakeAvailable(lang) + "\n\n" : "";
+            String attemptPrefix = nextAttempt > 1 ? Lang.msgUrinish(lang, nextAttempt) + "\n\n" : "";
+            String prefix = retakePrefix + attemptPrefix;
+            String text = prefix + Lang.msgTestStart(lang,
                 test.getTitleUz(), qCount, test.getTimeLimitMinutes(), test.getTotalPoints());
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
-                .replyMarkup(StudentKeyboards.testConfirm(test.getId())).build());
+                .replyMarkup(StudentKeyboards.testConfirm(test.getId(), lang)).build());
         } catch (Exception e) {
             log.error("handleTestCallback error: {}", e.getMessage());
         }
@@ -155,6 +163,7 @@ public class TestHandler {
         long telegramId = callback.getFrom().getId();
         long chatId = callback.getMessage().getChatId();
         int messageId = callback.getMessage().getMessageId();
+        String lang = langFor(telegramId);
         try {
             UserState us = stateManager.getStateWithData(telegramId);
             TestStateData sd = stateManager.getStateData(us, TestStateData.class);
@@ -162,9 +171,9 @@ public class TestHandler {
 
             if (testService.isTimeUp(sd.getStartedAt(), sd.getTimeLimitMinutes())) {
                 stateManager.clearState(telegramId);
-                bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId()).text("⏰ Vaqt tugadi!").build());
+                bot.execute(AnswerCallbackQuery.builder().callbackQueryId(callback.getId()).text(Lang.msgTimeUpShort(lang)).build());
                 bot.execute(DeleteMessage.builder().chatId(chatId).messageId(messageId).build());
-                sendText(chatId, "⏰ Vaqt tugadi! Test avtomatik yakunlandi.");
+                sendText(chatId, Lang.msgTimeUpAutoCompleted(lang));
                 completeTest(chatId, telegramId, sd, "timeout");
                 return;
             }
@@ -215,10 +224,11 @@ public class TestHandler {
     }
 
     private void showQuestion(long chatId, long telegramId, TestStateData sd) {
+        String lang = langFor(telegramId);
         try {
             if (testService.isTimeUp(sd.getStartedAt(), sd.getTimeLimitMinutes())) {
                 stateManager.clearState(telegramId);
-                sendText(chatId, "⏰ Vaqt tugadi! Test avtomatik yakunlandi.");
+                sendText(chatId, Lang.msgTimeUpAutoCompleted(lang));
                 completeTest(chatId, telegramId, sd, "timeout");
                 return;
             }
@@ -229,16 +239,16 @@ public class TestHandler {
             }
 
             if (testService.shouldShowWarning(sd.getStartedAt(), sd.getTimeLimitMinutes())) {
-                sendText(chatId, UzMessages.MSG_TEST_TIME_WARNING);
+                sendText(chatId, Lang.msgTestTimeWarning(lang));
             }
 
             CachedQuestionData cq = sd.getQuestions().get(sd.getCurrentQuestion());
             long sec = testService.getRemainingTime(sd.getStartedAt(), sd.getTimeLimitMinutes()).getSeconds();
             String timeStr = String.format("%d:%02d", sec / 60, sec % 60);
 
-            String text = String.format(UzMessages.MSG_TEST_QUESTION,
+            String text = Lang.msgTestQuestion(lang,
                 sd.getCurrentQuestion() + 1, sd.getTotalQuestions(), cq.getQuestionText())
-                + "\n\nQolgan vaqt: " + timeStr;
+                + "\n\n" + Lang.msgRemainingTimeLabel(lang) + timeStr;
 
             List<AnswerOption> options = new ArrayList<>();
             for (CachedOptionData o : cq.getOptions()) {
@@ -272,33 +282,34 @@ public class TestHandler {
     }
 
     private void completeTest(long chatId, long telegramId, TestStateData sd, String status) {
+        String lang = langFor(telegramId);
         try {
             TestResult result = testService.completeTest(sd.getResultId(), status);
             int correctCount = resultRepository.getTestAnswersByResultId(sd.getResultId()).stream()
                 .mapToInt(a -> a.isCorrect() ? 1 : 0).sum();
             stateManager.clearState(telegramId);
 
-            String prefix = "timeout".equals(status) ? UzMessages.MSG_TEST_TIME_UP + "\n\n" : "";
-            String attemptInfo = sd.getAttemptNumber() > 1 ? sd.getAttemptNumber() + "-urinish natijasi\n" : "";
-            String text = prefix + attemptInfo + String.format(UzMessages.MSG_TEST_COMPLETED,
+            String prefix = "timeout".equals(status) ? Lang.msgTestTimeUp(lang) + "\n\n" : "";
+            String attemptInfo = sd.getAttemptNumber() > 1 ? Lang.msgUrinishNatijasi(lang, sd.getAttemptNumber()) + "\n" : "";
+            String text = prefix + attemptInfo + Lang.msgTestCompleted(lang,
                 result.getScore(), result.getMaxScore(), correctCount, sd.getTotalQuestions());
 
             InlineKeyboardMarkup kb = sd.getLessonId() != 0
-                ? backToLesson(sd.getLessonId()) : null;
+                ? backToLesson(sd.getLessonId(), lang) : null;
 
             SendMessage msg = SendMessage.builder().chatId(chatId).text(text).build();
             if (kb != null) msg.setReplyMarkup(kb);
-            else msg.setReplyMarkup(StudentKeyboards.mainMenu());
+            else msg.setReplyMarkup(StudentKeyboards.mainMenu(lang));
             bot.execute(msg);
         } catch (Exception e) {
             log.error("completeTest error: {}", e.getMessage());
         }
     }
 
-    private InlineKeyboardMarkup backToLesson(int lessonId) {
+    private InlineKeyboardMarkup backToLesson(int lessonId, String lang) {
         return InlineKeyboardMarkup.builder()
             .keyboardRow(new InlineKeyboardRow(InlineKeyboardButton.builder()
-                .text(UzMessages.BTN_BACK)
+                .text(Lang.btnBack(lang))
                 .callbackData(StudentKeyboards.CB_BACK + "lesson:" + lessonId)
                 .build()))
             .build();

@@ -1,8 +1,10 @@
 package com.dentistrybot.admin.api;
 
+import com.dentistrybot.admin.security.AccessControlService;
 import com.dentistrybot.shared.model.Unit;
 import com.dentistrybot.shared.repository.LessonRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -14,9 +16,11 @@ public class UnitController {
     private static final int MAX_NAME_LENGTH = 10;
 
     private final LessonRepository lessonRepo;
+    private final AccessControlService accessControl;
 
-    public UnitController(LessonRepository lessonRepo) {
+    public UnitController(LessonRepository lessonRepo, AccessControlService accessControl) {
         this.lessonRepo = lessonRepo;
+        this.accessControl = accessControl;
     }
 
     @GetMapping
@@ -32,7 +36,11 @@ public class UnitController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> create(@RequestBody Map<String, String> body, Authentication auth) {
+        // Creating a brand-new subject is a curriculum decision, not "editing my subject" -
+        // professors may only manage units already assigned to them, never create new ones.
+        if (!accessControl.isSuperAdminOrZavKafedra(auth))
+            return ResponseEntity.status(403).body(Map.of("error", "Only zav kafedra or super admin can create units"));
         String name = body.get("name");
         String titleUz = body.get("titleUz");
         if (name == null || titleUz == null || name.isBlank() || titleUz.isBlank())
@@ -48,9 +56,10 @@ public class UnitController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable int id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> update(@PathVariable int id, @RequestBody Map<String, String> body, Authentication auth) {
         Unit u = lessonRepo.getUnitById(id);
         if (u == null) return ResponseEntity.notFound().build();
+        if (!accessControl.canManageUnit(auth, id)) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         String name = body.getOrDefault("name", u.getName());
         String titleUz = body.getOrDefault("titleUz", u.getTitleUz());
         if (name.trim().length() > MAX_NAME_LENGTH)
@@ -64,9 +73,10 @@ public class UnitController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable int id) {
+    public ResponseEntity<?> delete(@PathVariable int id, Authentication auth) {
         Unit u = lessonRepo.getUnitById(id);
         if (u == null) return ResponseEntity.notFound().build();
+        if (!accessControl.canManageUnit(auth, id)) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         lessonRepo.deleteUnit(id);
         return ResponseEntity.ok(Map.of("ok", true));
     }

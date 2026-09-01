@@ -20,6 +20,25 @@ public class TestRepository {
         this.jdbc = jdbc;
     }
 
+    /** Used by AccessControlService to resolve which unit ("predmet") a test belongs to. */
+    public Integer getUnitIdForTest(int testId) {
+        return jdbc.query("""
+            SELECT l.unit_id FROM tests t JOIN lessons l ON t.lesson_id = l.id WHERE t.id = :testId
+            """, Map.of("testId", testId), (rs, rn) -> rs.getInt("unit_id"))
+            .stream().findFirst().orElse(null);
+    }
+
+    /** Used by AccessControlService to resolve which unit ("predmet") a question belongs to. */
+    public Integer getUnitIdForQuestion(int questionId) {
+        return jdbc.query("""
+            SELECT l.unit_id FROM questions q
+            JOIN tests t ON q.test_id = t.id
+            JOIN lessons l ON t.lesson_id = l.id
+            WHERE q.id = :questionId
+            """, Map.of("questionId", questionId), (rs, rn) -> rs.getInt("unit_id"))
+            .stream().findFirst().orElse(null);
+    }
+
     private static final RowMapper<Test> TEST_MAPPER = (rs, rowNum) -> {
         Test t = new Test();
         t.setId(rs.getInt("id"));

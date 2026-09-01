@@ -6,7 +6,6 @@ import com.dentistrybot.shared.model.SituationalTask;
 import com.dentistrybot.shared.model.TheoryMaterial;
 import com.dentistrybot.shared.model.Unit;
 import com.dentistrybot.student.localization.Lang;
-import com.dentistrybot.student.localization.UzMessages;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
@@ -68,16 +67,18 @@ public final class StudentKeyboards {
         return ReplyKeyboardRemove.builder().removeKeyboard(true).build();
     }
 
-    public static InlineKeyboardMarkup courseSelection() {
+    public static InlineKeyboardMarkup courseSelection() { return courseSelection("uz"); }
+
+    public static InlineKeyboardMarkup courseSelection(String lang) {
         return InlineKeyboardMarkup.builder()
             .keyboardRow(new InlineKeyboardRow(
-                btn(UzMessages.BTN_COURSE_1, CB_COURSE + "1"),
-                btn(UzMessages.BTN_COURSE_2, CB_COURSE + "2"),
-                btn(UzMessages.BTN_COURSE_3, CB_COURSE + "3")))
+                btn(Lang.btnCourse(lang, 1), CB_COURSE + "1"),
+                btn(Lang.btnCourse(lang, 2), CB_COURSE + "2"),
+                btn(Lang.btnCourse(lang, 3), CB_COURSE + "3")))
             .keyboardRow(new InlineKeyboardRow(
-                btn(UzMessages.BTN_COURSE_4, CB_COURSE + "4"),
-                btn(UzMessages.BTN_COURSE_5, CB_COURSE + "5"),
-                btn(UzMessages.BTN_COURSE_6, CB_COURSE + "6")))
+                btn(Lang.btnCourse(lang, 4), CB_COURSE + "4"),
+                btn(Lang.btnCourse(lang, 5), CB_COURSE + "5"),
+                btn(Lang.btnCourse(lang, 6), CB_COURSE + "6")))
             .build();
     }
 
@@ -117,7 +118,9 @@ public final class StudentKeyboards {
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup lessons(List<Lesson> lessons, int unitId) {
+    public static InlineKeyboardMarkup lessons(List<Lesson> lessons, int unitId) { return lessons(lessons, unitId, "uz"); }
+
+    public static InlineKeyboardMarkup lessons(List<Lesson> lessons, int unitId, String lang) {
         List<InlineKeyboardRow> rows = new ArrayList<>();
         for (int i = 0; i < lessons.size(); i += 2) {
             InlineKeyboardRow row = new InlineKeyboardRow();
@@ -129,23 +132,27 @@ public final class StudentKeyboards {
             }
             rows.add(row);
         }
-        rows.add(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_BACK + "units")));
+        rows.add(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_BACK + "units")));
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup lessonMenu(int lessonId, int unitId) {
+    public static InlineKeyboardMarkup lessonMenu(int lessonId, int unitId) { return lessonMenu(lessonId, unitId, "uz"); }
+
+    public static InlineKeyboardMarkup lessonMenu(int lessonId, int unitId, String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_TEST, CB_TEST + lessonId)))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_THEORY, CB_THEORY + lessonId)))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_SITUATIONAL, CB_SIT + lessonId)))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_BACK + "lessons:" + unitId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnTest(lang), CB_TEST + lessonId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnTheory(lang), CB_THEORY + lessonId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnSituational(lang), CB_SIT + lessonId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_BACK + "lessons:" + unitId)))
             .build();
     }
 
-    public static InlineKeyboardMarkup testConfirm(int testId) {
+    public static InlineKeyboardMarkup testConfirm(int testId) { return testConfirm(testId, "uz"); }
+
+    public static InlineKeyboardMarkup testConfirm(int testId, String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_START_TEST, CB_CONFIRM + "test:" + testId)))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_CANCEL, CB_CANCEL)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.msgStartTest(lang), CB_CONFIRM + "test:" + testId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnCancel(lang), CB_CANCEL)))
             .build();
     }
 
@@ -161,6 +168,10 @@ public final class StudentKeyboards {
     }
 
     public static InlineKeyboardMarkup situationalTaskList(List<SituationalTask> tasks, Set<Integer> answeredIds, int lessonId) {
+        return situationalTaskList(tasks, answeredIds, lessonId, "uz");
+    }
+
+    public static InlineKeyboardMarkup situationalTaskList(List<SituationalTask> tasks, Set<Integer> answeredIds, int lessonId, String lang) {
         List<InlineKeyboardRow> rows = new ArrayList<>();
         InlineKeyboardRow row = new InlineKeyboardRow();
         for (int i = 0; i < tasks.size(); i++) {
@@ -174,42 +185,52 @@ public final class StudentKeyboards {
                 row.clear();
             }
         }
-        rows.add(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_BACK + "lesson:" + lessonId)));
+        rows.add(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_BACK + "lesson:" + lessonId)));
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup situationalConfirm(int taskId) {
+    public static InlineKeyboardMarkup situationalConfirm(int taskId) { return situationalConfirm(taskId, "uz"); }
+
+    public static InlineKeyboardMarkup situationalConfirm(int taskId, String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_START_SITUATIONAL, CB_CONFIRM + "sit:" + taskId)))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_CANCEL, CB_CANCEL)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.msgStartSituational(lang), CB_CONFIRM + "sit:" + taskId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnCancel(lang), CB_CANCEL)))
             .build();
     }
 
-    public static InlineKeyboardMarkup situationalAnswerConfirm() {
+    public static InlineKeyboardMarkup situationalAnswerConfirm() { return situationalAnswerConfirm("uz"); }
+
+    public static InlineKeyboardMarkup situationalAnswerConfirm(String lang) {
         return InlineKeyboardMarkup.builder()
             .keyboardRow(new InlineKeyboardRow(
-                btn("✅ Yuborish", "confirm_situational_answer"),
-                btn("✏️ Tahrirlash", "edit_situational_answer")))
+                btn(Lang.msgConfirmSituationalAnswer(lang), "confirm_situational_answer"),
+                btn(Lang.msgEditSituationalAnswer(lang), "edit_situational_answer")))
             .build();
     }
 
-    public static InlineKeyboardMarkup theoryTypes(int lessonId) {
+    public static InlineKeyboardMarkup theoryTypes(int lessonId) { return theoryTypes(lessonId, "uz"); }
+
+    public static InlineKeyboardMarkup theoryTypes(int lessonId, String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_BOOKS, CB_MAT_TYPE + lessonId + ":book")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_MANUALS, CB_MAT_TYPE + lessonId + ":manual")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.MSG_MATERIALS, CB_MAT_TYPE + lessonId + ":material")))
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_BACK + "lesson:" + lessonId)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.msgBooks(lang), CB_MAT_TYPE + lessonId + ":book")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.msgManuals(lang), CB_MAT_TYPE + lessonId + ":manual")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.msgMaterials(lang), CB_MAT_TYPE + lessonId + ":material")))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_BACK + "lesson:" + lessonId)))
             .build();
     }
 
     public static InlineKeyboardMarkup materialList(List<TheoryMaterial> materials, String type, int lessonId) {
+        return materialList(materials, type, lessonId, "uz");
+    }
+
+    public static InlineKeyboardMarkup materialList(List<TheoryMaterial> materials, String type, int lessonId, String lang) {
         List<InlineKeyboardRow> rows = new ArrayList<>();
         for (TheoryMaterial m : materials) {
             if (type.equals(m.getMaterialType())) {
                 rows.add(new InlineKeyboardRow(btn(m.getTitleUz(), CB_MATERIAL + m.getId())));
             }
         }
-        rows.add(new InlineKeyboardRow(btn(UzMessages.BTN_BACK, CB_THEORY + lessonId)));
+        rows.add(new InlineKeyboardRow(btn(Lang.btnBack(lang), CB_THEORY + lessonId)));
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
@@ -226,17 +247,23 @@ public final class StudentKeyboards {
             .build();
     }
 
-    public static InlineKeyboardMarkup cancelOnly() {
+    public static InlineKeyboardMarkup cancelOnly() { return cancelOnly("uz"); }
+
+    public static InlineKeyboardMarkup cancelOnly(String lang) {
         return InlineKeyboardMarkup.builder()
-            .keyboardRow(new InlineKeyboardRow(btn(UzMessages.BTN_CANCEL, CB_CANCEL)))
+            .keyboardRow(new InlineKeyboardRow(btn(Lang.btnCancel(lang), CB_CANCEL)))
             .build();
     }
 
     public static InlineKeyboardMarkup pagination(int current, int total, String prefix) {
+        return pagination(current, total, prefix, "uz");
+    }
+
+    public static InlineKeyboardMarkup pagination(int current, int total, String prefix, String lang) {
         InlineKeyboardRow row = new InlineKeyboardRow();
-        if (current > 1) row.add(btn(UzMessages.BTN_PREVIOUS, prefix + (current - 1)));
-        row.add(btn(String.format(UzMessages.MSG_PAGE, current, total), "noop"));
-        if (current < total) row.add(btn(UzMessages.BTN_NEXT, prefix + (current + 1)));
+        if (current > 1) row.add(btn(Lang.btnPrevious(lang), prefix + (current - 1)));
+        row.add(btn(Lang.msgPage(lang, current, total), "noop"));
+        if (current < total) row.add(btn(Lang.btnNext(lang), prefix + (current + 1)));
         return InlineKeyboardMarkup.builder().keyboardRow(row).build();
     }
 

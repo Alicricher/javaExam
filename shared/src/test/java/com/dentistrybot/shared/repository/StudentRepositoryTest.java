@@ -55,7 +55,7 @@ class StudentRepositoryTest {
         ArgumentCaptor<MapSqlParameterSource> paramsCaptor = ArgumentCaptor.forClass(MapSqlParameterSource.class);
         verify(jdbc).queryForObject(sqlCaptor.capture(), paramsCaptor.capture(), eq(Integer.class));
         assertThat(total).isEqualTo(5);
-        assertThat(sqlCaptor.getValue()).contains("LOWER(full_name)", "course = :course", "LOWER(group_name)", "LOWER(subgroup)", "LOWER(faculty)");
+        assertThat(sqlCaptor.getValue()).contains("uz_translit(full_name) LIKE uz_translit(:fullName)", "course = :course", "LOWER(group_name)", "LOWER(subgroup)", "LOWER(faculty)");
         assertThat(paramsCaptor.getValue().hasValue("limit")).isFalse();
         assertThat(paramsCaptor.getValue().hasValue("offset")).isFalse();
     }

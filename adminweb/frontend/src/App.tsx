@@ -6,6 +6,7 @@ import TestResultsPage from './pages/TestResultsPage'
 import SituationalPage from './pages/SituationalPage'
 import ContentPage from './pages/ContentPage'
 import AdminUsersPage from './pages/AdminUsersPage'
+import ProfessorAssignmentsPage from './pages/ProfessorAssignmentsPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="results/tests" element={<TestResultsPage />} />
           <Route path="results/situational" element={<SituationalPage />} />
           <Route path="content" element={<ContentPage />} />
+          <Route path="professor-assignments" element={<ProfessorAssignmentsPage />} />
           <Route path="admin-users" element={<AdminUsersPage />} />
         </Route>
       </Routes>

@@ -31,7 +31,7 @@ class ResultRepositoryTest {
         assertThat(sqlCaptor.getValue()).contains(
             "LOWER(s.group_name)",
             "LOWER(s.subgroup)",
-            "LOWER(s.full_name)",
+            "uz_translit(s.full_name) LIKE uz_translit(:studentName)",
             "LOWER(t.title_uz)",
             "tr.status = :status",
             "u.id = :unitId",
@@ -65,7 +65,7 @@ class ResultRepositoryTest {
         assertThat(sqlCaptor.getValue()).contains(
             "LOWER(s.group_name)",
             "LOWER(s.subgroup)",
-            "LOWER(s.full_name)",
+            "uz_translit(s.full_name) LIKE uz_translit(:studentName)",
             "sa.is_graded = :graded",
             "u.id = :unitId",
             "l.id = :lessonId",

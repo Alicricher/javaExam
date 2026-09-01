@@ -1,11 +1,13 @@
 package com.dentistrybot.admin.api;
 
+import com.dentistrybot.admin.security.AccessControlService;
 import com.dentistrybot.shared.model.Lesson;
 import com.dentistrybot.shared.model.TheoryMaterial;
 import com.dentistrybot.shared.repository.LessonRepository;
 import com.dentistrybot.shared.service.FileService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,10 +22,17 @@ public class TheoryController {
 
     private final LessonRepository lessonRepo;
     private final FileService fileService;
+    private final AccessControlService accessControl;
 
-    public TheoryController(LessonRepository lessonRepo, FileService fileService) {
+    public TheoryController(LessonRepository lessonRepo, FileService fileService, AccessControlService accessControl) {
         this.lessonRepo = lessonRepo;
         this.fileService = fileService;
+        this.accessControl = accessControl;
+    }
+
+    private boolean forbidden(Authentication auth, int lessonId) {
+        Integer unitId = lessonRepo.getUnitIdForLesson(lessonId);
+        return unitId == null || !accessControl.canManageUnit(auth, unitId);
     }
 
     @PostMapping
@@ -31,9 +40,11 @@ public class TheoryController {
                                     @RequestParam String titleUz,
                                     @RequestParam(defaultValue = "material") String materialType,
                                     @RequestParam(required = false) String description,
-                                    @RequestParam(required = false) MultipartFile file) {
+                                    @RequestParam(required = false) MultipartFile file,
+                                    Authentication auth) {
         Lesson lesson = lessonRepo.getLessonById(lessonId);
         if (lesson == null) return ResponseEntity.badRequest().body(Map.of("error", "lesson not found"));
+        if (!accessControl.canManageUnit(auth, lesson.getUnitId())) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
 
         String filePath = null;
         if (file != null && !file.isEmpty()) {
@@ -68,9 +79,11 @@ public class TheoryController {
                                     @RequestParam(required = false) String materialType,
                                     @RequestParam(required = false) String description,
                                     @RequestParam(required = false) MultipartFile file,
-                                    @RequestBody(required = false) Map<String, String> body) {
+                                    @RequestBody(required = false) Map<String, String> body,
+                                    Authentication auth) {
         TheoryMaterial m = lessonRepo.getTheoryMaterialById(id);
         if (m == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, m.getLessonId())) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
 
         if (body != null) {
             if (body.containsKey("titleUz")) titleUz = body.get("titleUz");
@@ -104,9 +117,10 @@ public class TheoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable int id) {
+    public ResponseEntity<?> delete(@PathVariable int id, Authentication auth) {
         TheoryMaterial m = lessonRepo.getTheoryMaterialById(id);
         if (m == null) return ResponseEntity.notFound().build();
+        if (forbidden(auth, m.getLessonId())) return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         if (m.getFilePath() != null && !m.getFilePath().isEmpty()) {
             try { fileService.deleteFile(m.getFilePath()); } catch (Exception ignored) {}
         }

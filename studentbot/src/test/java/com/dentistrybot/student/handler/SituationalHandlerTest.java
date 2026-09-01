@@ -6,6 +6,7 @@ import com.dentistrybot.shared.model.Student;
 import com.dentistrybot.shared.repository.LessonRepository;
 import com.dentistrybot.shared.repository.ResultRepository;
 import com.dentistrybot.shared.repository.StudentRepository;
+import com.dentistrybot.shared.service.FileService;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.service.TestService;
 import com.dentistrybot.shared.state.SituationalStateData;
@@ -43,6 +44,7 @@ class SituationalHandlerTest extends HandlerTestSupport {
     private LessonRepository lessonRepository;
     private ResultRepository resultRepository;
     private StudentRepository studentRepository;
+    private FileService fileService;
     private SituationalHandler handler;
 
     @BeforeEach
@@ -53,7 +55,8 @@ class SituationalHandlerTest extends HandlerTestSupport {
         lessonRepository = mock(LessonRepository.class);
         resultRepository = mock(ResultRepository.class);
         studentRepository = mock(StudentRepository.class);
-        handler = new SituationalHandler(bot, stateManager, testService, lessonRepository, resultRepository, studentRepository);
+        fileService = mock(FileService.class);
+        handler = new SituationalHandler(bot, stateManager, testService, lessonRepository, resultRepository, studentRepository, fileService);
     }
 
     private Student student() {
@@ -118,6 +121,24 @@ class SituationalHandlerTest extends HandlerTestSupport {
 
         List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
         assertThat(edits.get(0).getText()).contains("2 ta").contains("Bajarilgan: 1/2");
+    }
+
+    @org.junit.jupiter.api.Test
+    void situationalCallback_russianStudent_showsProgressCountInRussian() throws Exception {
+        SituationalTask t1 = task(1, 5, 1, "matn1", 30);
+        SituationalTask t2 = task(2, 5, 2, "matn2", 30);
+        Student ruStudent = student();
+        ruStudent.setLanguage("ru");
+        when(lessonRepository.getSituationalTasksByLessonId(5)).thenReturn(List.of(t1, t2));
+        when(studentRepository.getStudentByTelegramId(TELEGRAM_ID)).thenReturn(ruStudent);
+        when(resultRepository.getSubmittedTaskIds(42, List.of(1, 2))).thenReturn(Map.of(1, true));
+
+        handler.handleSituationalCallback(callbackWithData(StudentKeyboards.CB_SIT + "5"));
+
+        List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
+        assertThat(edits.get(0).getText())
+            .contains("Ситуационные задачи (2 шт.)", "Выполнено: 1/2", "Выберите задачу:")
+            .doesNotContain("Vaziyatli masalalar", "Bajarilgan");
     }
 
     // ---------------- handleTaskSelectCallback ----------------

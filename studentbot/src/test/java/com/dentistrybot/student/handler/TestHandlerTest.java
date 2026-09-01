@@ -7,6 +7,7 @@ import com.dentistrybot.shared.model.TestResult;
 import com.dentistrybot.shared.repository.ResultRepository;
 import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.repository.TestRepository;
+import com.dentistrybot.shared.service.FileService;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.shared.service.TestService;
 import com.dentistrybot.shared.state.CachedOptionData;
@@ -62,6 +63,7 @@ class TestHandlerTest {
     private TestRepository testRepository;
     private ResultRepository resultRepository;
     private StudentRepository studentRepository;
+    private FileService fileService;
     private TestHandler handler;
 
     @BeforeEach
@@ -72,7 +74,8 @@ class TestHandlerTest {
         testRepository = mock(TestRepository.class);
         resultRepository = mock(ResultRepository.class);
         studentRepository = mock(StudentRepository.class);
-        handler = new TestHandler(bot, stateManager, testService, testRepository, resultRepository, studentRepository);
+        fileService = mock(FileService.class);
+        handler = new TestHandler(bot, stateManager, testService, testRepository, resultRepository, studentRepository, fileService);
     }
 
     private CallbackQuery callbackWithData(String data) {
@@ -166,6 +169,29 @@ class TestHandlerTest {
         String expected = String.format(UzMessages.MSG_TEST_START, "Tish anatomiyasi", 10, 15, 10);
         assertThat(edits.get(0).getText()).isEqualTo(expected);
         assertThat(edits.get(0).getText()).doesNotContain(UzMessages.MSG_RETAKE_AVAILABLE);
+    }
+
+    @org.junit.jupiter.api.Test
+    void testCallback_russianStudent_showsMessageInRussian() throws Exception {
+        Test test = new Test();
+        test.setId(1);
+        test.setTitleUz("Tish anatomiyasi");
+        test.setTimeLimitMinutes(15);
+        test.setTotalPoints(10);
+        Student ruStudent = student();
+        ruStudent.setLanguage("ru");
+        when(testRepository.getTestByLessonId(7)).thenReturn(test);
+        when(studentRepository.getStudentByTelegramId(TELEGRAM_ID)).thenReturn(ruStudent);
+        when(testService.canTakeTest(42, 1)).thenReturn(new String[]{"true", "first_attempt"});
+        when(testService.getTotalQuestionsCount(1)).thenReturn(10);
+
+        handler.handleTestCallback(callbackWithData(StudentKeyboards.CB_TEST + "7"));
+
+        List<EditMessageText> edits = executedOf(EditMessageText.class);
+        assertThat(edits.get(0).getText())
+            .startsWith("Тест: Tish anatomiyasi")
+            .contains("Количество вопросов: 10", "Время: 15 мин", "Всего баллов: 10", "Начать тест?")
+            .doesNotContain("Savollar soni", "Testni boshlashni tasdiqlaysizmi");
     }
 
     @org.junit.jupiter.api.Test

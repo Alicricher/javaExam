@@ -68,8 +68,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin-users/**").hasRole("SUPER_ADMIN")
                 // All GET requests: any authenticated user (all 3 roles)
                 .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
-                // Write operations (POST/PUT/DELETE): super admin and zav kafedra
-                .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN", "ZAV_KAFEDRA")
+                // Write operations (POST/PUT/DELETE): super admin, zav kafedra, and professor.
+                // This is only the coarse role gate - PROFESSOR is further restricted to their
+                // assigned units by AccessControlService inside each content controller.
+                .requestMatchers("/api/**").hasAnyRole("SUPER_ADMIN", "ZAV_KAFEDRA", "PROFESSOR")
                 .anyRequest().permitAll()
             )
             .formLogin(form -> form.disable())

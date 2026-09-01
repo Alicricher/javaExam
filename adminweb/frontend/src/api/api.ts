@@ -110,6 +110,8 @@ export const getTestResults = (params?: Record<string, unknown>) =>
   client.get('/results/tests', { params })
 export const getTestGroupStats = (testId: number) =>
   client.get('/results/tests/group-stats', { params: { testId } })
+export const getTestStudentDetails = (testId: number) =>
+  client.get('/results/tests/student-details', { params: { testId } })
 export const getTestResultAnswers = (id: number) =>
   client.get(`/results/tests/${id}/answers`)
 export const getSituationalResults = (params?: Record<string, unknown>) =>
@@ -126,3 +128,12 @@ export const createAdminUser = (data: { username: string; password: string; role
 export const updateAdminUser = (id: number, data: { role?: string; fullName?: string; password?: string }) =>
   client.put(`/admin-users/${id}`, data)
 export const deleteAdminUser = (id: number) => client.delete(`/admin-users/${id}`)
+
+// Professor <-> unit assignments ("kim qaysi fanni boshqaradi")
+export const getProfessors = () => client.get('/professor-assignments/professors')
+export const getProfessorAssignments = (adminUserId: number) =>
+  client.get(`/professor-assignments/${adminUserId}`)
+export const assignProfessorUnit = (adminUserId: number, unitId: number) =>
+  client.post('/professor-assignments', { adminUserId, unitId })
+export const unassignProfessorUnit = (adminUserId: number, unitId: number) =>
+  client.delete(`/professor-assignments/${adminUserId}/${unitId}`)

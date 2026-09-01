@@ -2,6 +2,7 @@ package com.dentistrybot.student.handler;
 
 import com.dentistrybot.shared.model.TheoryMaterial;
 import com.dentistrybot.shared.repository.LessonRepository;
+import com.dentistrybot.shared.repository.StudentRepository;
 import com.dentistrybot.shared.service.FileService;
 import com.dentistrybot.shared.service.StateManager;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
@@ -30,6 +31,7 @@ class TheoryHandlerTest extends HandlerTestSupport {
     private StateManager stateManager;
     private LessonRepository lessonRepository;
     private FileService fileService;
+    private StudentRepository studentRepository;
     private TheoryHandler handler;
 
     @BeforeEach
@@ -38,7 +40,8 @@ class TheoryHandlerTest extends HandlerTestSupport {
         stateManager = mock(StateManager.class);
         lessonRepository = mock(LessonRepository.class);
         fileService = mock(FileService.class);
-        handler = new TheoryHandler(bot, stateManager, lessonRepository, fileService);
+        studentRepository = mock(StudentRepository.class);
+        handler = new TheoryHandler(bot, stateManager, lessonRepository, fileService, studentRepository);
     }
 
     private TheoryMaterial material(int id, String titleUz, String type, String filePath, String description) {

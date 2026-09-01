@@ -47,6 +47,36 @@ class ResultControllerTest {
     }
 
     @Test
+    void groupStatsDelegatesToRepository() {
+        ResultRepository repo = mock(ResultRepository.class);
+        when(repo.getGroupStatsByTestId(7)).thenReturn(List.of(Map.of("group_name", "301", "student_count", 10)));
+
+        var response = new ResultController(repo).groupStats(7);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> body = (List<Map<String, Object>>) response.getBody();
+        assertThat(body).hasSize(1);
+        verify(repo).getGroupStatsByTestId(7);
+    }
+
+    @Test
+    void studentDetailsDelegatesToRepository() {
+        ResultRepository repo = mock(ResultRepository.class);
+        when(repo.getStudentResultDetailsByTestId(7))
+            .thenReturn(List.of(Map.of("full_name", "Ali Aliyev", "passed", true)));
+
+        var response = new ResultController(repo).studentDetails(7);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> body = (List<Map<String, Object>>) response.getBody();
+        assertThat(body).hasSize(1).first().satisfies(row ->
+            assertThat(row).containsEntry("full_name", "Ali Aliyev").containsEntry("passed", true));
+        verify(repo).getStudentResultDetailsByTestId(7);
+    }
+
+    @Test
     void getSituationalAnswerReturnsNotFoundWhenMissing() {
         ResultRepository repo = mock(ResultRepository.class);
         when(repo.getSituationalAnswerById(1)).thenReturn(null);

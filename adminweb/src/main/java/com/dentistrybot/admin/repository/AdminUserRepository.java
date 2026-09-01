@@ -84,4 +84,46 @@ public class AdminUserRepository {
     public void delete(int id) {
         jdbc.update("DELETE FROM admin_users WHERE id = :id", Map.of("id", id));
     }
+
+    // ==================== PROFESSOR <-> UNIT ASSIGNMENTS ====================
+
+    public List<Integer> getAssignedUnitIds(int adminUserId) {
+        return jdbc.queryForList(
+            "SELECT unit_id FROM professor_unit_assignments WHERE admin_user_id = :adminUserId",
+            Map.of("adminUserId", adminUserId), Integer.class);
+    }
+
+    public boolean isUnitAssigned(int adminUserId, int unitId) {
+        Boolean exists = jdbc.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM professor_unit_assignments WHERE admin_user_id = :adminUserId AND unit_id = :unitId)",
+            Map.of("adminUserId", adminUserId, "unitId", unitId), Boolean.class);
+        return Boolean.TRUE.equals(exists);
+    }
+
+    public List<Map<String, Object>> getAssignmentsWithUnitNames(int adminUserId) {
+        return jdbc.queryForList("""
+            SELECT u.id AS "unitId", u.name AS "name", u.title_uz AS "titleUz"
+            FROM professor_unit_assignments pa
+            JOIN units u ON pa.unit_id = u.id
+            WHERE pa.admin_user_id = :adminUserId
+            ORDER BY u.name
+            """, Map.of("adminUserId", adminUserId));
+    }
+
+    public void assignUnit(int adminUserId, int unitId, Integer assignedBy) {
+        jdbc.update("""
+            INSERT INTO professor_unit_assignments (admin_user_id, unit_id, assigned_by)
+            VALUES (:adminUserId, :unitId, :assignedBy)
+            ON CONFLICT (admin_user_id, unit_id) DO NOTHING
+            """, new MapSqlParameterSource()
+            .addValue("adminUserId", adminUserId)
+            .addValue("unitId", unitId)
+            .addValue("assignedBy", assignedBy));
+    }
+
+    public void unassignUnit(int adminUserId, int unitId) {
+        jdbc.update(
+            "DELETE FROM professor_unit_assignments WHERE admin_user_id = :adminUserId AND unit_id = :unitId",
+            Map.of("adminUserId", adminUserId, "unitId", unitId));
+    }
 }

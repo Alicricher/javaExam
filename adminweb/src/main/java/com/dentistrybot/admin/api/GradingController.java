@@ -1,5 +1,6 @@
 package com.dentistrybot.admin.api;
 
+import com.dentistrybot.admin.security.AccessControlService;
 import com.dentistrybot.shared.model.SituationalAnswer;
 import com.dentistrybot.shared.repository.LessonRepository;
 import com.dentistrybot.shared.repository.ResultRepository;
@@ -7,6 +8,7 @@ import com.dentistrybot.shared.service.GradingService;
 import com.dentistrybot.shared.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -18,24 +20,36 @@ public class GradingController {
     private final ResultRepository resultRepo;
     private final LessonRepository lessonRepo;
     private final NotificationService notificationService;
+    private final AccessControlService accessControl;
     @Nullable
     private final GradingService gradingService;
 
     public GradingController(ResultRepository resultRepo, LessonRepository lessonRepo,
                              NotificationService notificationService,
+                             AccessControlService accessControl,
                              @Nullable GradingService gradingService) {
         this.resultRepo = resultRepo;
         this.lessonRepo = lessonRepo;
         this.notificationService = notificationService;
+        this.accessControl = accessControl;
         this.gradingService = gradingService;
     }
 
     @PostMapping("/{id}/grade")
-    public ResponseEntity<?> grade(@PathVariable int id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> grade(@PathVariable int id, @RequestBody Map<String, Object> body, Authentication auth) {
         SituationalAnswer answer = resultRepo.getSituationalAnswerById(id);
         if (answer == null) return ResponseEntity.notFound().build();
 
         String mode = (String) body.get("mode");
+
+        // Only the manual (final, DB-writing) grade actually needs ownership enforcement -
+        // the "ai" mode is a read-only preview that writes nothing.
+        if ("manual".equals(mode)) {
+            var task = lessonRepo.getSituationalTaskById(answer.getTaskId());
+            Integer unitId = task != null ? lessonRepo.getUnitIdForLesson(task.getLessonId()) : null;
+            if (unitId == null || !accessControl.canManageUnit(auth, unitId))
+                return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
+        }
 
         if ("ai".equals(mode)) {
             if (gradingService == null)

@@ -10,7 +10,7 @@ import com.dentistrybot.shared.state.SituationalStateData;
 import com.dentistrybot.shared.state.StateConstants;
 import com.dentistrybot.shared.state.UserState;
 import com.dentistrybot.student.keyboard.StudentKeyboards;
-import com.dentistrybot.student.localization.UzMessages;
+import com.dentistrybot.student.localization.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -40,6 +40,11 @@ public class TimeoutEnforcer {
         this.studentRepository = studentRepository;
     }
 
+    private String langFor(long telegramId) {
+        Student s = studentRepository.getStudentByTelegramId(telegramId);
+        return s != null ? s.getLanguage() : "uz";
+    }
+
     @Scheduled(fixedDelay = 60_000)
     public void enforceTimeouts() {
         try {
@@ -51,11 +56,12 @@ public class TimeoutEnforcer {
             List<UserState> expiredTests = stateRepository.getExpiredTestStates();
             for (UserState s : expiredTests) {
                 try {
+                    String lang = langFor(s.getTelegramId());
                     stateRepository.clearUserState(s.getTelegramId(), "student");
                     bot.execute(SendMessage.builder()
                         .chatId(s.getTelegramId())
-                        .text("⏰ Test vaqti tugadi! Test avtomatik yakunlandi.")
-                        .replyMarkup(StudentKeyboards.mainMenu())
+                        .text(Lang.msgTimeUpAutoCompleted(lang))
+                        .replyMarkup(StudentKeyboards.mainMenu(lang))
                         .build());
                 } catch (Exception e) {
                     log.error("Error notifying student {} about test timeout: {}", s.getTelegramId(), e.getMessage());
@@ -65,7 +71,8 @@ public class TimeoutEnforcer {
             // 3. Clear states for expired situational tasks and notify students
             List<UserState> expiredSit = stateRepository.getExpiredSituationalStates();
             for (UserState s : expiredSit) {
-                String notifyText = "⏰ Vaziyatli masala vaqti tugadi!";
+                String lang = langFor(s.getTelegramId());
+                String notifyText = Lang.msgSituationalTimeoutNotify(lang);
                 try {
                     if (StateConstants.SITUATIONAL_CONFIRM_ANSWER.equals(s.getState())) {
                         SituationalStateData sd = stateManager.getStateData(s, SituationalStateData.class);
@@ -80,7 +87,7 @@ public class TimeoutEnforcer {
                                 answer.setSubmittedAt(LocalDateTime.now());
                                 try {
                                     resultRepository.createSituationalAnswer(answer);
-                                    notifyText = "⏰ Vaziyatli masala vaqti tugadi! Javobingiz saqlandi.";
+                                    notifyText = Lang.msgSituationalTimeoutNotifySaved(lang);
                                 } catch (Exception ex) {
                                     log.error("Failed to save situational answer for user {}: {}", s.getTelegramId(), ex.getMessage());
                                 }
@@ -91,7 +98,7 @@ public class TimeoutEnforcer {
                     bot.execute(SendMessage.builder()
                         .chatId(s.getTelegramId())
                         .text(notifyText)
-                        .replyMarkup(StudentKeyboards.mainMenu())
+                        .replyMarkup(StudentKeyboards.mainMenu(lang))
                         .build());
                 } catch (Exception e) {
                     log.error("Error processing situational timeout for {}: {}", s.getTelegramId(), e.getMessage());
