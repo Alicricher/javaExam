@@ -51,7 +51,7 @@ public class LessonHandler {
             bot.execute(SendMessage.builder()
                 .chatId(chatId)
                 .text(Lang.msgSelectUnit(lang))
-                .replyMarkup(StudentKeyboards.units(units))
+                .replyMarkup(StudentKeyboards.units(units, lang))
                 .build());
         } catch (Exception e) {
             log.error("showUnits error: {}", e.getMessage());
@@ -70,7 +70,7 @@ public class LessonHandler {
             stateManager.setStateWithData(telegramId, StateConstants.SELECT_LESSON,
                 new LessonMenuStateData(unitId, 0));
             answerCallback(callback.getId());
-            String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + Lang.msgSelectLesson(lang);
+            String text = unit.getName() + " - " + unit.titleFor(lang) + "\n\n" + Lang.msgSelectLesson(lang);
             EditMessageText edit = EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
                 .replyMarkup(lessons.isEmpty() ? null : StudentKeyboards.lessons(lessons, unitId, lang))
@@ -116,7 +116,7 @@ public class LessonHandler {
                 stateManager.setState(telegramId, StateConstants.SELECT_UNIT);
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId).text(Lang.msgSelectUnit(lang))
-                    .replyMarkup(StudentKeyboards.units(units)).build());
+                    .replyMarkup(StudentKeyboards.units(units, lang)).build());
 
             } else if (backTarget.startsWith("lessons:")) {
                 int unitId = Integer.parseInt(backTarget.substring("lessons:".length()));
@@ -124,7 +124,7 @@ public class LessonHandler {
                 List<Lesson> lessons = lessonRepository.getLessonsByUnitId(unitId);
                 stateManager.setStateWithData(telegramId, StateConstants.SELECT_LESSON,
                     new LessonMenuStateData(unitId, 0));
-                String text = unit.getName() + " - " + unit.getTitleUz() + "\n\n" + Lang.msgSelectLesson(lang);
+                String text = unit.getName() + " - " + unit.titleFor(lang) + "\n\n" + Lang.msgSelectLesson(lang);
                 bot.execute(EditMessageText.builder()
                     .chatId(chatId).messageId(messageId).text(text)
                     .replyMarkup(StudentKeyboards.lessons(lessons, unitId, lang)).build());

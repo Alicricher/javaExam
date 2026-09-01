@@ -110,10 +110,12 @@ public final class StudentKeyboards {
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 
-    public static InlineKeyboardMarkup units(List<Unit> units) {
+    public static InlineKeyboardMarkup units(List<Unit> units) { return units(units, "uz"); }
+
+    public static InlineKeyboardMarkup units(List<Unit> units, String lang) {
         List<InlineKeyboardRow> rows = new ArrayList<>();
         for (Unit u : units) {
-            rows.add(new InlineKeyboardRow(btn(u.getName() + " - " + u.getTitleUz(), CB_UNIT + u.getId())));
+            rows.add(new InlineKeyboardRow(btn(u.getName() + " - " + u.titleFor(lang), CB_UNIT + u.getId())));
         }
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }

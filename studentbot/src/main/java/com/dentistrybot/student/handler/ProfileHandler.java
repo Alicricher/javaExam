@@ -107,6 +107,11 @@ public class ProfileHandler {
             bot.execute(EditMessageText.builder()
                 .chatId(chatId).messageId(messageId).text(text)
                 .replyMarkup(StudentKeyboards.profileEdit(lang)).build());
+            // EditMessageText can't change the persistent bottom ReplyKeyboardMarkup —
+            // it keeps showing the old language until a new message carries a new one.
+            bot.execute(SendMessage.builder()
+                .chatId(chatId).text(Lang.msgMainMenu(lang))
+                .replyMarkup(StudentKeyboards.mainMenu(lang)).build());
         } catch (Exception e) {
             log.error("handleLangCallback error: {}", e.getMessage());
         }

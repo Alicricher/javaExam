@@ -175,5 +175,12 @@ class ProfileHandlerTest extends HandlerTestSupport {
         verify(stateManager).clearState(TELEGRAM_ID);
         List<EditMessageText> edits = executedOf(bot, EditMessageText.class);
         assertThat(edits.get(0).getText()).contains(Lang.msgLangChanged("ru"));
+
+        // The persistent bottom keyboard can only be refreshed via a new SendMessage
+        // (EditMessageText can't change a ReplyKeyboardMarkup), so switching language
+        // must also resend the main menu with the new-language buttons.
+        List<SendMessage> sent = executedOf(bot, SendMessage.class);
+        assertThat(sent).hasSize(1);
+        assertThat(sent.get(0).getReplyMarkup()).isEqualTo(StudentKeyboards.mainMenu("ru"));
     }
 }

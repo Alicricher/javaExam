@@ -32,6 +32,7 @@ public class LessonRepository {
         u.setId(rs.getInt("id"));
         u.setName(rs.getString("name"));
         u.setTitleUz(rs.getString("title_uz"));
+        u.setTitleRu(rs.getString("title_ru"));
         u.setCreatedAt(rs.getObject("created_at", LocalDateTime.class));
         return u;
     };
@@ -77,20 +78,20 @@ public class LessonRepository {
 
     public List<Unit> getAllUnits() {
         String sql = """
-            SELECT id, name, title_uz, created_at FROM units
+            SELECT id, name, title_uz, title_ru, created_at FROM units
             ORDER BY SUBSTRING(name FROM '^[A-Za-z]+'), CAST(SUBSTRING(name FROM '[0-9]+') AS INTEGER)
             """;
         return jdbc.query(sql, Map.of(), UNIT_MAPPER);
     }
 
     public Unit getUnitById(int id) {
-        var results = jdbc.query("SELECT id, name, title_uz, created_at FROM units WHERE id = :id",
+        var results = jdbc.query("SELECT id, name, title_uz, title_ru, created_at FROM units WHERE id = :id",
             Map.of("id", id), UNIT_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }
 
     public Unit getUnitByName(String name) {
-        var results = jdbc.query("SELECT id, name, title_uz, created_at FROM units WHERE name = :name",
+        var results = jdbc.query("SELECT id, name, title_uz, title_ru, created_at FROM units WHERE name = :name",
             Map.of("name", name), UNIT_MAPPER);
         return results.isEmpty() ? null : results.get(0);
     }

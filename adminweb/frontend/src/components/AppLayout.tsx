@@ -6,17 +6,12 @@ import {
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { getMe, logout } from '../api/api'
+import { type AdminLang, useLang, setAdminLang, pick } from '../i18n'
 
 const { Sider, Content } = Layout
 
 export type AdminRole = 'SUPER_ADMIN' | 'ZAV_KAFEDRA' | 'PROFESSOR'
-export type AdminLang = 'uz' | 'ru'
-
-const LANG_KEY = 'admin_lang'
-
-export function getAdminLang(): AdminLang {
-  return (localStorage.getItem(LANG_KEY) as AdminLang) || 'uz'
-}
+export type { AdminLang }
 
 const roleMeta: Record<AdminRole, { label: string; color: string }> = {
   SUPER_ADMIN:  { label: 'Super Admin', color: 'red' },
@@ -24,14 +19,16 @@ const roleMeta: Record<AdminRole, { label: string; color: string }> = {
   PROFESSOR:    { label: 'Professor', color: 'green' },
 }
 
-const allMenuItems = [
-  { key: '/students',           icon: <TeamOutlined />,        label: 'Talabalar',              minRole: 'PROFESSOR' },
-  { key: '/results/tests',      icon: <FileTextOutlined />,    label: 'Test natijalari',        minRole: 'PROFESSOR' },
-  { key: '/results/situational',icon: <SolutionOutlined />,    label: 'Vaziyatli topshiriqlar', minRole: 'PROFESSOR' },
-  { key: '/content',            icon: <BookOutlined />,        label: 'Kontent',                minRole: 'PROFESSOR' },
-  { key: '/professor-assignments', icon: <ApartmentOutlined />, label: 'Fanlarni biriktirish', minRole: 'ZAV_KAFEDRA' },
-  { key: '/admin-users',        icon: <UserOutlined />,        label: 'Foydalanuvchilar',       minRole: 'SUPER_ADMIN' },
-]
+function menuItems(lang: AdminLang) {
+  return [
+    { key: '/students',           icon: <TeamOutlined />,        label: pick(lang, 'Talabalar', 'Студенты'),                 minRole: 'PROFESSOR' },
+    { key: '/results/tests',      icon: <FileTextOutlined />,    label: pick(lang, 'Test natijalari', 'Результаты тестов'),  minRole: 'PROFESSOR' },
+    { key: '/results/situational',icon: <SolutionOutlined />,    label: pick(lang, 'Vaziyatli topshiriqlar', 'Ситуационные задачи'), minRole: 'PROFESSOR' },
+    { key: '/content',            icon: <BookOutlined />,        label: pick(lang, 'Kontent', 'Контент'),                    minRole: 'PROFESSOR' },
+    { key: '/professor-assignments', icon: <ApartmentOutlined />, label: pick(lang, 'Fanlarni biriktirish', 'Назначение предметов'), minRole: 'ZAV_KAFEDRA' },
+    { key: '/admin-users',        icon: <UserOutlined />,        label: pick(lang, 'Foydalanuvchilar', 'Пользователи'),      minRole: 'SUPER_ADMIN' },
+  ]
+}
 
 const roleOrder: AdminRole[] = ['PROFESSOR', 'ZAV_KAFEDRA', 'SUPER_ADMIN']
 
@@ -43,7 +40,7 @@ export default function AppLayout() {
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [role, setRole] = useState<AdminRole>('PROFESSOR')
   const [username, setUsername] = useState('')
-  const [lang, setLang] = useState<AdminLang>(getAdminLang)
+  const lang = useLang()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -66,13 +63,10 @@ export default function AppLayout() {
   }
 
   const handleLangChange = (val: string | number) => {
-    const newLang = val as AdminLang
-    setLang(newLang)
-    localStorage.setItem(LANG_KEY, newLang)
-    window.dispatchEvent(new Event('admin-lang-change'))
+    setAdminLang(val as AdminLang)
   }
 
-  const menuItems = allMenuItems
+  const items = menuItems(lang)
     .filter(item => hasAccess(role, item.minRole))
     .map(({ key, icon, label }) => ({ key, icon, label }))
 
@@ -92,7 +86,7 @@ export default function AppLayout() {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          items={menuItems}
+          items={items}
           onClick={({ key }) => navigate(key)}
         />
         <div style={{ position: 'absolute', bottom: 56, left: 16, right: 16 }}>
@@ -110,7 +104,7 @@ export default function AppLayout() {
             onClick={handleLogout}
             style={{ width: '100%', color: '#ff4d4f', borderColor: '#ff4d4f', background: 'transparent' }}
           >
-            Chiqish
+            {pick(lang, 'Chiqish', 'Выйти')}
           </Button>
         </div>
       </Sider>

@@ -5,6 +5,7 @@ import {
 } from 'antd'
 import { SearchOutlined, EyeOutlined, ReloadOutlined, BarChartOutlined, PrinterOutlined } from '@ant-design/icons'
 import { getLessonTest, getTestResultAnswers, getTestResults, getTestGroupStats, getTestStudentDetails, getUnitLessons, getUnits, grantTestRetake } from '../api/api'
+import { useLang, pick, type AdminLang } from '../i18n'
 
 const { Title, Text } = Typography
 
@@ -24,9 +25,9 @@ interface TestResult {
   attemptNumber: number
 }
 
-interface Unit { id: number; name: string; titleUz: string }
-interface Lesson { id: number; lessonNumber: number; titleUz: string }
-interface TestInfo { id: number; titleUz: string }
+interface Unit { id: number; name: string; titleUz: string; titleRu?: string }
+interface Lesson { id: number; lessonNumber: number; titleUz: string; titleRu?: string }
+interface TestInfo { id: number; titleUz: string; titleRu?: string }
 interface GroupStat {
   group_name: string
   subgroup: string
@@ -55,16 +56,18 @@ interface TestAnswerDetail {
   answeredAt?: string
 }
 
-const statusMeta = {
-  completed: { label: 'Yakunlangan', color: 'green' },
-  timeout: { label: 'Vaqt tugagan', color: 'orange' },
-  in_progress: { label: 'Jarayonda', color: 'blue' },
-}
+const statusMeta = (lang: AdminLang) => ({
+  completed: { label: pick(lang, 'Yakunlangan', 'Завершён'), color: 'green' },
+  timeout: { label: pick(lang, 'Vaqt tugagan', 'Время истекло'), color: 'orange' },
+  in_progress: { label: pick(lang, 'Jarayonda', 'В процессе'), color: 'blue' },
+})
 
 const percentOf = (result: TestResult) =>
   result.maxScore > 0 ? Math.round((result.score / result.maxScore) * 100) : 0
 
 export default function TestResultsPage() {
+  const lang = useLang()
+  const status = statusMeta(lang)
   const [data, setData] = useState<TestResult[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -161,8 +164,8 @@ export default function TestResultsPage() {
 
   const exportGroupStatsPdf = () => {
     if (!groupStats.length) return
-    const testTitle = lessonTest?.titleUz || `Test #${filters.testId}`
-    const date = new Date().toLocaleDateString('uz-UZ', { year: 'numeric', month: 'long', day: 'numeric' })
+    const testTitle = pick(lang, lessonTest?.titleUz ?? '', lessonTest?.titleRu || lessonTest?.titleUz || '') || `Test #${filters.testId}`
+    const date = new Date().toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ', { year: 'numeric', month: 'long', day: 'numeric' })
     const totalStudents = groupStats.reduce((s, r) => s + r.student_count, 0)
     const totalPassed = groupStats.reduce((s, r) => s + r.passed_count, 0)
     const overallPct = totalStudents > 0 ? Math.round(totalPassed / totalStudents * 100) : 0
@@ -192,18 +195,18 @@ export default function TestResultsPage() {
         return `<tr>
           <td>${s.full_name}</td>
           <td>${s.score} / ${s.max_score} (${pct}%)</td>
-          <td class="${s.passed ? 'pass' : 'fail'}">${s.passed ? "O'tdi" : "O'tmadi"}</td>
+          <td class="${s.passed ? 'pass' : 'fail'}">${s.passed ? pick(lang, "O'tdi", 'Сдал') : pick(lang, "O'tmadi", 'Не сдал')}</td>
         </tr>`
       }).join('')
       return `<h3>${groupKey}</h3>
         <table>
-          <thead><tr><th>F.I.O.</th><th>Ball</th><th>Natija</th></tr></thead>
+          <thead><tr><th>${pick(lang, 'F.I.O.', 'ФИО')}</th><th>${pick(lang, 'Ball', 'Балл')}</th><th>${pick(lang, 'Natija', 'Результат')}</th></tr></thead>
           <tbody>${studentRows}</tbody>
         </table>`
     }).join('')
 
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>Guruh statistikasi — ${testTitle}</title>
+      <title>${pick(lang, 'Guruh statistikasi', 'Статистика по группе')} — ${testTitle}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 24px; color: #000; }
         h2 { font-size: 16px; margin-bottom: 4px; }
@@ -219,15 +222,15 @@ export default function TestResultsPage() {
         @media print { body { margin: 0; } h3 { page-break-after: avoid; } table { page-break-inside: auto; } tr { page-break-inside: avoid; } }
       </style>
     </head><body>
-      <h2>Guruh statistikasi: ${testTitle}</h2>
-      <div class="meta">Sana: ${date}</div>
+      <h2>${pick(lang, 'Guruh statistikasi', 'Статистика по группе')}: ${testTitle}</h2>
+      <div class="meta">${pick(lang, 'Sana', 'Дата')}: ${date}</div>
       <table>
         <thead><tr>
-          <th>Guruh</th><th>Kichik guruh</th><th>Talabalar</th><th>O'tdi</th><th>O'rtacha %</th>
+          <th>${pick(lang, 'Guruh', 'Группа')}</th><th>${pick(lang, 'Kichik guruh', 'Подгруппа')}</th><th>${pick(lang, 'Talabalar', 'Студенты')}</th><th>${pick(lang, "O'tdi", 'Сдали')}</th><th>${pick(lang, "O'rtacha %", 'Средний %')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr class="summary">
-          <td colspan="2">Jami</td>
+          <td colspan="2">${pick(lang, 'Jami', 'Итого')}</td>
           <td>${totalStudents}</td>
           <td>${totalPassed} / ${totalStudents} (${overallPct}%)</td>
           <td>—</td>
@@ -237,7 +240,7 @@ export default function TestResultsPage() {
     </body></html>`
 
     const win = window.open('', '_blank')
-    if (!win) { message.error("Brauzer popup'ni blokladi. Ruxsat bering va qayta urinib ko'ring."); return }
+    if (!win) { message.error(pick(lang, "Brauzer popup'ni blokladi. Ruxsat bering va qayta urinib ko'ring.", 'Браузер заблокировал всплывающее окно. Разрешите его и попробуйте снова.')); return }
     win.document.write(html)
     win.document.close()
     win.onload = () => { win.focus(); win.print() }
@@ -279,7 +282,7 @@ export default function TestResultsPage() {
 
   const giveRetake = async (result: TestResult) => {
     await grantTestRetake(result.studentId, result.testId)
-    message.success('Qayta topshirish berildi')
+    message.success(pick(lang, 'Qayta topshirish berildi', 'Пересдача предоставлена'))
   }
 
   const openResult = async (result: TestResult) => {
@@ -296,64 +299,64 @@ export default function TestResultsPage() {
 
   return (
     <div>
-      <Title level={4}>Test natijalari</Title>
+      <Title level={4}>{pick(lang, 'Test natijalari', 'Результаты тестов')}</Title>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
-        <Card size="small"><Statistic title="Jami topildi" value={total} /></Card>
-        <Card size="small"><Statistic title="Yakunlangan (o'rtacha %)" value={pageStats.avg} suffix="%" /></Card>
-        <Card size="small"><Statistic title="Yakunlangan / o'tdi (sahifa)" value={`${pageStats.completed} / ${pageStats.passed}`} /></Card>
-        <Card size="small"><Statistic title="Vaqt tugagan / jarayonda" value={`${pageStats.timeout} / ${pageStats.inProgress}`} /></Card>
+        <Card size="small"><Statistic title={pick(lang, 'Jami topildi', 'Всего найдено')} value={total} /></Card>
+        <Card size="small"><Statistic title={pick(lang, "Yakunlangan (o'rtacha %)", 'Завершено (средний %)')} value={pageStats.avg} suffix="%" /></Card>
+        <Card size="small"><Statistic title={pick(lang, "Yakunlangan / o'tdi (sahifa)", 'Завершено / сдали (стр.)')} value={`${pageStats.completed} / ${pageStats.passed}`} /></Card>
+        <Card size="small"><Statistic title={pick(lang, 'Vaqt tugagan / jarayonda', 'Истекло время / в процессе')} value={`${pageStats.timeout} / ${pageStats.inProgress}`} /></Card>
       </div>
 
       <Space wrap style={{ marginBottom: 16 }}>
-        <Input placeholder="Talaba ismi" value={filters.studentName}
+        <Input placeholder={pick(lang, 'Talaba ismi', 'Имя студента')} value={filters.studentName}
           onChange={e => setFilters(f => ({ ...f, studentName: e.target.value }))} style={{ width: 210 }} />
-        <Input placeholder="Test, dars yoki bo'lim" value={filters.testName}
+        <Input placeholder={pick(lang, "Test, dars yoki bo'lim", 'Тест, урок или раздел')} value={filters.testName}
           onChange={e => setFilters(f => ({ ...f, testName: e.target.value }))} style={{ width: 210 }} />
-        <Input placeholder="Guruh" value={filters.group}
+        <Input placeholder={pick(lang, 'Guruh', 'Группа')} value={filters.group}
           onChange={e => setFilters(f => ({ ...f, group: e.target.value }))} style={{ width: 120 }} />
-        <Input placeholder="Kichik guruh" value={filters.subgroup}
+        <Input placeholder={pick(lang, 'Kichik guruh', 'Подгруппа')} value={filters.subgroup}
           onChange={e => setFilters(f => ({ ...f, subgroup: e.target.value }))} style={{ width: 130 }} />
         <Select
-          placeholder="Bo'lim"
+          placeholder={pick(lang, "Bo'lim", 'Раздел')}
           allowClear
           value={filters.unitId}
           style={{ width: 150 }}
           onChange={handleUnitChange}
-          options={units.map(u => ({ value: u.id, label: `${u.name} - ${u.titleUz}` }))}
+          options={units.map(u => ({ value: u.id, label: `${u.name} - ${pick(lang, u.titleUz, u.titleRu || u.titleUz)}` }))}
         />
         <Select
-          placeholder="Dars"
+          placeholder={pick(lang, 'Dars', 'Урок')}
           allowClear
           value={filters.lessonId}
           disabled={!filters.unitId}
           style={{ width: 220 }}
           onChange={handleLessonChange}
-          options={lessons.map(l => ({ value: l.id, label: `${l.lessonNumber}. ${l.titleUz}` }))}
+          options={lessons.map(l => ({ value: l.id, label: `${l.lessonNumber}. ${pick(lang, l.titleUz, l.titleRu || l.titleUz)}` }))}
         />
         <Select
-          placeholder="Test"
+          placeholder={pick(lang, 'Test', 'Тест')}
           allowClear
           value={filters.testId}
           disabled={!lessonTest}
           style={{ width: 150 }}
           onChange={testId => setFilters(f => ({ ...f, testId }))}
-          options={lessonTest ? [{ value: lessonTest.id, label: lessonTest.titleUz || `Test #${lessonTest.id}` }] : []}
+          options={lessonTest ? [{ value: lessonTest.id, label: pick(lang, lessonTest.titleUz, lessonTest.titleRu || lessonTest.titleUz) || `Test #${lessonTest.id}` }] : []}
         />
         <Select
-          placeholder="Holat"
+          placeholder={pick(lang, 'Holat', 'Статус')}
           allowClear
           value={filters.status || undefined}
           style={{ width: 150 }}
           onChange={value => setFilters(f => ({ ...f, status: value || '' }))}
           options={[
-            { value: 'completed', label: 'Yakunlangan' },
-            { value: 'timeout', label: 'Vaqt tugagan' },
-            { value: 'in_progress', label: 'Jarayonda' },
+            { value: 'completed', label: status.completed.label },
+            { value: 'timeout', label: status.timeout.label },
+            { value: 'in_progress', label: status.in_progress.label },
           ]}
         />
-        <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters}>Qidirish</Button>
-        <Button onClick={resetFilters}>Tozalash</Button>
+        <Button type="primary" icon={<SearchOutlined />} onClick={applyFilters}>{pick(lang, 'Qidirish', 'Найти')}</Button>
+        <Button onClick={resetFilters}>{pick(lang, 'Tozalash', 'Сбросить')}</Button>
       </Space>
 
       <Tabs
@@ -365,7 +368,7 @@ export default function TestResultsPage() {
         items={[
           {
             key: 'results',
-            label: 'Natijalar',
+            label: pick(lang, 'Natijalar', 'Результаты'),
             children: (
               <Table
                 rowKey="id"
@@ -374,12 +377,12 @@ export default function TestResultsPage() {
                 scroll={{ x: 1120 }}
                 pagination={{ current: page, total, pageSize: 20, onChange: p => { setPage(p); load(p) } }}
                 columns={[
-                  { title: 'Talaba', dataIndex: 'studentName', fixed: 'left', width: 190 },
-                  { title: 'Test', dataIndex: 'testTitle', width: 160 },
-                  { title: 'Dars', dataIndex: 'lessonTitle', width: 190, ellipsis: true },
-                  { title: "Bo'lim", dataIndex: 'unitName', width: 90 },
+                  { title: pick(lang, 'Talaba', 'Студент'), dataIndex: 'studentName', fixed: 'left', width: 190 },
+                  { title: pick(lang, 'Test', 'Тест'), dataIndex: 'testTitle', width: 160 },
+                  { title: pick(lang, 'Dars', 'Урок'), dataIndex: 'lessonTitle', width: 190, ellipsis: true },
+                  { title: pick(lang, "Bo'lim", 'Раздел'), dataIndex: 'unitName', width: 90 },
                   {
-                    title: 'Natija', key: 'score', width: 170,
+                    title: pick(lang, 'Natija', 'Результат'), key: 'score', width: 170,
                     render: (_: unknown, r: TestResult) => (
                       <Space direction="vertical" size={0} style={{ width: '100%' }}>
                         <Text>{r.score}/{r.maxScore} ({percentOf(r)}%)</Text>
@@ -387,18 +390,18 @@ export default function TestResultsPage() {
                       </Space>
                     ),
                   },
-                  { title: 'Urinish', dataIndex: 'attemptNumber', width: 90 },
+                  { title: pick(lang, 'Urinish', 'Попытка'), dataIndex: 'attemptNumber', width: 90 },
                   {
-                    title: 'Holat', dataIndex: 'status', width: 130,
-                    render: (s: TestResult['status']) => <Tag color={statusMeta[s].color}>{statusMeta[s].label}</Tag>,
+                    title: pick(lang, 'Holat', 'Статус'), dataIndex: 'status', width: 130,
+                    render: (s: TestResult['status']) => <Tag color={status[s].color}>{status[s].label}</Tag>,
                   },
-                  { title: 'Boshlangan', dataIndex: 'startedAt', width: 170, render: (v: string) => v ? new Date(v).toLocaleString('uz') : '-' },
+                  { title: pick(lang, 'Boshlangan', 'Начат'), dataIndex: 'startedAt', width: 170, render: (v: string) => v ? new Date(v).toLocaleString(lang === 'ru' ? 'ru' : 'uz') : '-' },
                   {
-                    title: 'Amallar', key: 'actions', width: 160, fixed: 'right',
+                    title: pick(lang, 'Amallar', 'Действия'), key: 'actions', width: 160, fixed: 'right',
                     render: (_: unknown, r: TestResult) => (
                       <Space>
-                        <Button size="small" icon={<EyeOutlined />} onClick={() => openResult(r)}>Ko'rish</Button>
-                        <Popconfirm title="Bu test uchun qayta topshirish berilsinmi?" onConfirm={() => giveRetake(r)} okText="Ha" cancelText="Yo'q">
+                        <Button size="small" icon={<EyeOutlined />} onClick={() => openResult(r)}>{pick(lang, "Ko'rish", 'Смотреть')}</Button>
+                        <Popconfirm title={pick(lang, 'Bu test uchun qayta topshirish berilsinmi?', 'Предоставить пересдачу этого теста?')} onConfirm={() => giveRetake(r)} okText={pick(lang, 'Ha', 'Да')} cancelText={pick(lang, "Yo'q", 'Нет')}>
                           <Button size="small" icon={<ReloadOutlined />} />
                         </Popconfirm>
                       </Space>
@@ -410,11 +413,11 @@ export default function TestResultsPage() {
           },
           {
             key: 'groups',
-            label: <span><BarChartOutlined /> Guruh statistikasi</span>,
+            label: <span><BarChartOutlined /> {pick(lang, 'Guruh statistikasi', 'Статистика по группам')}</span>,
             children: (
               <div>
                 {!filters.testId && (
-                  <Typography.Text type="secondary">Guruh statistikasini ko'rish uchun test tanlang (dars filtri orqali)</Typography.Text>
+                  <Typography.Text type="secondary">{pick(lang, "Guruh statistikasini ko'rish uchun test tanlang (dars filtri orqali)", 'Выберите тест (через фильтр по уроку), чтобы увидеть статистику по группам')}</Typography.Text>
                 )}
                 {filters.testId && (
                   <>
@@ -423,14 +426,14 @@ export default function TestResultsPage() {
                         size="small"
                         onClick={() => loadGroupStats(filters.testId!)}
                         loading={groupStatsLoading}
-                      >Yangilash</Button>
+                      >{pick(lang, 'Yangilash', 'Обновить')}</Button>
                       <Button
                         size="small"
                         icon={<PrinterOutlined />}
                         onClick={exportGroupStatsPdf}
                         disabled={!groupStats.length}
                         type="default"
-                      >PDF eksport</Button>
+                      >{pick(lang, 'PDF eksport', 'Экспорт в PDF')}</Button>
                     </Space>
                     <Table
                       rowKey={r => `${r.group_name}_${r.subgroup}`}
@@ -439,11 +442,11 @@ export default function TestResultsPage() {
                       pagination={false}
                       size="middle"
                       columns={[
-                        { title: 'Guruh', dataIndex: 'group_name', width: 150 },
-                        { title: 'Kichik guruh', dataIndex: 'subgroup', width: 130 },
-                        { title: "Talabalar soni", dataIndex: 'student_count', width: 140 },
+                        { title: pick(lang, 'Guruh', 'Группа'), dataIndex: 'group_name', width: 150 },
+                        { title: pick(lang, 'Kichik guruh', 'Подгруппа'), dataIndex: 'subgroup', width: 130 },
+                        { title: pick(lang, "Talabalar soni", 'Кол-во студентов'), dataIndex: 'student_count', width: 140 },
                         {
-                          title: "O'tdi", key: 'passed',
+                          title: pick(lang, "O'tdi", 'Сдали'), key: 'passed',
                           render: (_: unknown, r: GroupStat) => (
                             <span>
                               {r.passed_count}/{r.student_count}{' '}
@@ -454,7 +457,7 @@ export default function TestResultsPage() {
                           ),
                         },
                         {
-                          title: "O'rtacha ball", dataIndex: 'avg_score_pct',
+                          title: pick(lang, "O'rtacha ball", 'Средний балл'), dataIndex: 'avg_score_pct',
                           render: (v: number) => (
                             <Space>
                               <Progress
@@ -473,7 +476,7 @@ export default function TestResultsPage() {
                         const overallPct = totalStudents > 0 ? Math.round(totalPassed / totalStudents * 100) : 0
                         return (
                           <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={2}><strong>Jami</strong></Table.Summary.Cell>
+                            <Table.Summary.Cell index={0} colSpan={2}><strong>{pick(lang, 'Jami', 'Итого')}</strong></Table.Summary.Cell>
                             <Table.Summary.Cell index={2}><strong>{totalStudents}</strong></Table.Summary.Cell>
                             <Table.Summary.Cell index={3}>
                               <strong>{totalPassed}/{totalStudents}</strong>{' '}
@@ -492,22 +495,22 @@ export default function TestResultsPage() {
         ]}
       />
 
-      <Modal title="Test natijasi" open={!!selected} footer={null}
+      <Modal title={pick(lang, 'Test natijasi', 'Результат теста')} open={!!selected} footer={null}
         onCancel={() => { setSelected(null); setAnswerDetails([]) }} width={1100}>
         {selected && (
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
             <Descriptions bordered size="small" column={1}>
-              <Descriptions.Item label="Talaba">{selected.studentName}</Descriptions.Item>
-              <Descriptions.Item label="Test">{selected.testTitle}</Descriptions.Item>
-              <Descriptions.Item label="Dars">{selected.lessonTitle}</Descriptions.Item>
-              <Descriptions.Item label="Bo'lim">{selected.unitName}</Descriptions.Item>
-              <Descriptions.Item label="Ball">{selected.score}/{selected.maxScore} ({percentOf(selected)}%)</Descriptions.Item>
-              <Descriptions.Item label="Urinish">{selected.attemptNumber}</Descriptions.Item>
-              <Descriptions.Item label="Holat">
-                <Tag color={statusMeta[selected.status].color}>{statusMeta[selected.status].label}</Tag>
+              <Descriptions.Item label={pick(lang, 'Talaba', 'Студент')}>{selected.studentName}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Test', 'Тест')}>{selected.testTitle}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Dars', 'Урок')}>{selected.lessonTitle}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, "Bo'lim", 'Раздел')}>{selected.unitName}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Ball', 'Балл')}>{selected.score}/{selected.maxScore} ({percentOf(selected)}%)</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Urinish', 'Попытка')}>{selected.attemptNumber}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Holat', 'Статус')}>
+                <Tag color={status[selected.status].color}>{status[selected.status].label}</Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Boshlangan">{selected.startedAt ? new Date(selected.startedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
-              <Descriptions.Item label="Tugagan">{selected.completedAt ? new Date(selected.completedAt).toLocaleString('uz') : '-'}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Boshlangan', 'Начат')}>{selected.startedAt ? new Date(selected.startedAt).toLocaleString(lang === 'ru' ? 'ru' : 'uz') : '-'}</Descriptions.Item>
+              <Descriptions.Item label={pick(lang, 'Tugagan', 'Завершён')}>{selected.completedAt ? new Date(selected.completedAt).toLocaleString(lang === 'ru' ? 'ru' : 'uz') : '-'}</Descriptions.Item>
               <Descriptions.Item label="ID">result: {selected.id}, student: {selected.studentId}, test: {selected.testId}</Descriptions.Item>
             </Descriptions>
             <Table
@@ -520,28 +523,28 @@ export default function TestResultsPage() {
               columns={[
                 { title: '#', dataIndex: 'orderNum', width: 58 },
                 {
-                  title: 'Savol', dataIndex: 'questionText', width: 280,
+                  title: pick(lang, 'Savol', 'Вопрос'), dataIndex: 'questionText', width: 280,
                   render: (v: string) => <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>,
                 },
                 {
-                  title: 'Talaba javobi', dataIndex: 'selectedOptionText', width: 240,
+                  title: pick(lang, 'Talaba javobi', 'Ответ студента'), dataIndex: 'selectedOptionText', width: 240,
                   render: (v: string | null) => v
                     ? <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>
-                    : <Text type="secondary">Javob berilmagan</Text>,
+                    : <Text type="secondary">{pick(lang, 'Javob berilmagan', 'Ответ не дан')}</Text>,
                 },
                 {
-                  title: "To'g'ri javob", dataIndex: 'correctOptionText', width: 240,
+                  title: pick(lang, "To'g'ri javob", 'Правильный ответ'), dataIndex: 'correctOptionText', width: 240,
                   render: (v: string | null) => v
                     ? <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{v}</div>
                     : '-',
                 },
                 {
-                  title: 'Natija', key: 'isCorrect', width: 120,
+                  title: pick(lang, 'Natija', 'Результат'), key: 'isCorrect', width: 120,
                   render: (_: unknown, a: TestAnswerDetail) => a.selectedOptionId == null
-                    ? <Tag>Berilmagan</Tag>
-                    : a.isCorrect ? <Tag color="green">To'g'ri</Tag> : <Tag color="red">Noto'g'ri</Tag>,
+                    ? <Tag>{pick(lang, 'Berilmagan', 'Не отвечено')}</Tag>
+                    : a.isCorrect ? <Tag color="green">{pick(lang, "To'g'ri", 'Верно')}</Tag> : <Tag color="red">{pick(lang, "Noto'g'ri", 'Неверно')}</Tag>,
                 },
-                { title: 'Ball', dataIndex: 'points', width: 70 },
+                { title: pick(lang, 'Ball', 'Балл'), dataIndex: 'points', width: 70 },
               ]}
             />
           </Space>

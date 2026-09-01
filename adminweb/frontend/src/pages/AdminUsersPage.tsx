@@ -5,6 +5,7 @@ import {
 } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, KeyOutlined } from '@ant-design/icons'
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from '../api/api'
+import { useLang, pick } from '../i18n'
 
 const { Title } = Typography
 
@@ -23,6 +24,7 @@ const roleMeta = {
 }
 
 export default function AdminUsersPage() {
+  const lang = useLang()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(false)
   const [createModal, setCreateModal] = useState(false)
@@ -38,7 +40,7 @@ export default function AdminUsersPage() {
       const res = await getAdminUsers()
       setUsers(res.data)
     } catch {
-      message.error('Xatolik')
+      message.error(pick(lang, 'Xatolik', 'Ошибка'))
     } finally {
       setLoading(false)
     }
@@ -50,12 +52,12 @@ export default function AdminUsersPage() {
     const vals = await createForm.validateFields()
     try {
       await createAdminUser(vals)
-      message.success('Foydalanuvchi yaratildi')
+      message.success(pick(lang, 'Foydalanuvchi yaratildi', 'Пользователь создан'))
       setCreateModal(false)
       createForm.resetFields()
       load()
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Xatolik')
+      message.error(e?.response?.data?.error || pick(lang, 'Xatolik', 'Ошибка'))
     }
   }
 
@@ -64,11 +66,11 @@ export default function AdminUsersPage() {
     const vals = await editForm.validateFields()
     try {
       await updateAdminUser(editUser.id, { role: vals.role, fullName: vals.fullName })
-      message.success('Yangilandi')
+      message.success(pick(lang, 'Yangilandi', 'Обновлено'))
       setEditUser(null)
       load()
     } catch {
-      message.error('Xatolik')
+      message.error(pick(lang, 'Xatolik', 'Ошибка'))
     }
   }
 
@@ -77,40 +79,40 @@ export default function AdminUsersPage() {
     const vals = await pwdForm.validateFields()
     try {
       await updateAdminUser(pwdUser.id, { password: vals.password })
-      message.success('Parol yangilandi')
+      message.success(pick(lang, 'Parol yangilandi', 'Пароль обновлён'))
       setPwdUser(null)
       pwdForm.resetFields()
     } catch {
-      message.error('Xatolik')
+      message.error(pick(lang, 'Xatolik', 'Ошибка'))
     }
   }
 
   const handleDelete = async (id: number) => {
     try {
       await deleteAdminUser(id)
-      message.success("O'chirildi")
+      message.success(pick(lang, "O'chirildi", 'Удалено'))
       load()
     } catch (e: any) {
-      message.error(e?.response?.data?.error || 'Xatolik')
+      message.error(e?.response?.data?.error || pick(lang, 'Xatolik', 'Ошибка'))
     }
   }
 
   const columns = [
     { title: 'Username', dataIndex: 'username', key: 'username', width: 160 },
-    { title: "To'liq ism", dataIndex: 'fullName', key: 'fullName' },
+    { title: pick(lang, "To'liq ism", 'Полное имя'), dataIndex: 'fullName', key: 'fullName' },
     {
-      title: 'Rol', dataIndex: 'role', key: 'role', width: 150,
+      title: pick(lang, 'Rol', 'Роль'), dataIndex: 'role', key: 'role', width: 150,
       render: (r: string) => {
         const m = roleMeta[r as keyof typeof roleMeta] ?? { label: r, color: 'default' }
         return <Tag color={m.color}>{m.label}</Tag>
       },
     },
     {
-      title: "Ro'yxatga olingan", dataIndex: 'createdAt', key: 'createdAt', width: 180,
-      render: (v: string) => v ? new Date(v).toLocaleDateString('uz-UZ') : '—',
+      title: pick(lang, "Ro'yxatga olingan", 'Дата регистрации'), dataIndex: 'createdAt', key: 'createdAt', width: 180,
+      render: (v: string) => v ? new Date(v).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'uz-UZ') : '—',
     },
     {
-      title: 'Amallar', key: 'actions', width: 180,
+      title: pick(lang, 'Amallar', 'Действия'), key: 'actions', width: 180,
       render: (_: unknown, u: AdminUser) => (
         <Space>
           <Button size="small" icon={<EditOutlined />}
@@ -119,7 +121,7 @@ export default function AdminUsersPage() {
           <Button size="small" icon={<KeyOutlined />}
             onClick={() => { setPwdUser(u); pwdForm.resetFields() }}
           />
-          <Popconfirm title="O'chirishni tasdiqlaysizmi?" onConfirm={() => handleDelete(u.id)}>
+          <Popconfirm title={pick(lang, "O'chirishni tasdiqlaysizmi?", 'Подтвердите удаление?')} onConfirm={() => handleDelete(u.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -130,9 +132,9 @@ export default function AdminUsersPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0 }}>Admin foydalanuvchilari</Title>
+        <Title level={4} style={{ margin: 0 }}>{pick(lang, 'Admin foydalanuvchilari', 'Пользователи-администраторы')}</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setCreateModal(true); createForm.resetFields() }}>
-          Yangi foydalanuvchi
+          {pick(lang, 'Yangi foydalanuvchi', 'Новый пользователь')}
         </Button>
       </div>
 
@@ -147,24 +149,24 @@ export default function AdminUsersPage() {
 
       {/* Create modal */}
       <Modal
-        title="Yangi foydalanuvchi"
+        title={pick(lang, 'Yangi foydalanuvchi', 'Новый пользователь')}
         open={createModal}
         onOk={handleCreate}
         onCancel={() => setCreateModal(false)}
-        okText="Yaratish"
-        cancelText="Bekor qilish"
+        okText={pick(lang, 'Yaratish', 'Создать')}
+        cancelText={pick(lang, 'Bekor qilish', 'Отмена')}
       >
         <Form form={createForm} layout="vertical">
-          <Form.Item name="username" label="Username" rules={[{ required: true, message: 'Kiritish shart' }]}>
+          <Form.Item name="username" label="Username" rules={[{ required: true, message: pick(lang, 'Kiritish shart', 'Обязательное поле') }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="fullName" label="To'liq ism">
+          <Form.Item name="fullName" label={pick(lang, "To'liq ism", 'Полное имя')}>
             <Input />
           </Form.Item>
-          <Form.Item name="password" label="Parol" rules={[{ required: true, min: 6, message: 'Kamida 6 belgi' }]}>
+          <Form.Item name="password" label={pick(lang, 'Parol', 'Пароль')} rules={[{ required: true, min: 6, message: pick(lang, 'Kamida 6 belgi', 'Минимум 6 символов') }]}>
             <Input.Password />
           </Form.Item>
-          <Form.Item name="role" label="Rol" initialValue="PROFESSOR" rules={[{ required: true }]}>
+          <Form.Item name="role" label={pick(lang, 'Rol', 'Роль')} initialValue="PROFESSOR" rules={[{ required: true }]}>
             <Select options={[
               { value: 'SUPER_ADMIN', label: 'Super Admin' },
               { value: 'ZAV_KAFEDRA', label: 'Zav. Kafedra' },
@@ -176,18 +178,18 @@ export default function AdminUsersPage() {
 
       {/* Edit modal */}
       <Modal
-        title={`Tahrirlash: ${editUser?.username}`}
+        title={`${pick(lang, 'Tahrirlash', 'Редактирование')}: ${editUser?.username}`}
         open={!!editUser}
         onOk={handleEdit}
         onCancel={() => setEditUser(null)}
-        okText="Saqlash"
-        cancelText="Bekor qilish"
+        okText={pick(lang, 'Saqlash', 'Сохранить')}
+        cancelText={pick(lang, 'Bekor qilish', 'Отмена')}
       >
         <Form form={editForm} layout="vertical">
-          <Form.Item name="fullName" label="To'liq ism">
+          <Form.Item name="fullName" label={pick(lang, "To'liq ism", 'Полное имя')}>
             <Input />
           </Form.Item>
-          <Form.Item name="role" label="Rol" rules={[{ required: true }]}>
+          <Form.Item name="role" label={pick(lang, 'Rol', 'Роль')} rules={[{ required: true }]}>
             <Select options={[
               { value: 'SUPER_ADMIN', label: 'Super Admin' },
               { value: 'ZAV_KAFEDRA', label: 'Zav. Kafedra' },
@@ -199,15 +201,15 @@ export default function AdminUsersPage() {
 
       {/* Password modal */}
       <Modal
-        title={`Parolni o'zgartirish: ${pwdUser?.username}`}
+        title={`${pick(lang, "Parolni o'zgartirish", 'Смена пароля')}: ${pwdUser?.username}`}
         open={!!pwdUser}
         onOk={handlePassword}
         onCancel={() => setPwdUser(null)}
-        okText="Saqlash"
-        cancelText="Bekor qilish"
+        okText={pick(lang, 'Saqlash', 'Сохранить')}
+        cancelText={pick(lang, 'Bekor qilish', 'Отмена')}
       >
         <Form form={pwdForm} layout="vertical">
-          <Form.Item name="password" label="Yangi parol" rules={[{ required: true, min: 6, message: 'Kamida 6 belgi' }]}>
+          <Form.Item name="password" label={pick(lang, 'Yangi parol', 'Новый пароль')} rules={[{ required: true, min: 6, message: pick(lang, 'Kamida 6 belgi', 'Минимум 6 символов') }]}>
             <Input.Password />
           </Form.Item>
         </Form>
