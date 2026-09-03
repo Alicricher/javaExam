@@ -14,8 +14,17 @@ export default function LoginPage() {
     try {
       await login(values.username, values.password)
       navigate('/')
-    } catch {
-      message.error(pick(lang, "Login yoki parol noto'g'ri", 'Неверный логин или пароль'))
+    } catch (err) {
+      const status = (err as { response?: { status?: number; data?: { retryAfterSeconds?: number } } })?.response?.status
+      if (status === 429) {
+        const retrySec = (err as { response?: { data?: { retryAfterSeconds?: number } } })?.response?.data?.retryAfterSeconds
+        const minutes = Math.max(1, Math.ceil((retrySec ?? 900) / 60))
+        message.error(pick(lang,
+          `Juda ko'p urinish. ${minutes} daqiqadan keyin qayta urinib ko'ring`,
+          `Слишком много попыток. Повторите через ${minutes} мин.`))
+      } else {
+        message.error(pick(lang, "Login yoki parol noto'g'ri", 'Неверный логин или пароль'))
+      }
     } finally {
       setLoading(false)
     }
