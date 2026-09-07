@@ -53,8 +53,13 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    # No cpus limit here on purpose: studentbot is the highest-priority service
+    # (real students depend on it directly), and a CPU quota would throttle it
+    # via cgroups the moment it's needed most — during a concurrent burst —
+    # even if the host has spare cores at that instant. The memory limit stays:
+    # that's protecting against a leak/GC storm taking down the whole host
+    # (including Postgres), not rationing normal operation.
     mem_limit: 900m
-    cpus: 1.5
 
   adminweb:
     build:
