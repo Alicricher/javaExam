@@ -326,6 +326,7 @@ export default function StudentsPage() {
           size="small"
           dataSource={resultsModal.data}
           loading={resultsModal.loading}
+          scroll={{ x: 'max-content' }}
           columns={[
             { title: pick(lang, 'Test', 'Тест'), dataIndex: 'testTitle' },
             { title: pick(lang, 'Dars', 'Урок'), dataIndex: 'lessonTitle' },

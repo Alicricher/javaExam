@@ -1,2 +1,67 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+/* Dark-sidebar language switcher: Segmented has no theme prop of its own and
+   defaults to dark (near-black) label text, which is unreadable against the
+   dark Sider/Drawer background for the unselected option. */
+.lang-switch-dark .ant-segmented-item {
+  color: rgba(255, 255, 255, 0.85);
+}
+.lang-switch-dark .ant-segmented-item-selected {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+/* Mobile nav: AntD's Sider auto-collapses to 0 width below the "lg" breakpoint
+   (991px) with no built-in way to reopen it once collapsed, since it has no
+   `collapsible`/trigger. Below that width we hide the Sider entirely and show
+   a small top bar with a hamburger button that opens a Drawer with the same
+   nav content instead. */
+.app-mobile-topbar { display: none; }
+
+@media (max-width: 991px) {
+  .app-sider-desktop { display: none; }
+  .app-mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #001529;
+    padding: 8px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .app-content {
+    margin: 8px !important;
+    padding: 12px !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .app-mobile-drawer { display: none; }
+}
+
+/* ContentPage's 3-column layout (units | lessons | lesson content) needs its
+   fixed 240px+280px columns to fit before any content column remains — well
+   over 500px, which doesn't fit a phone screen. Stack the columns instead. */
+@media (max-width: 900px) {
+  .content-page-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Safety net: any AntD Table without its own `scroll={{ x: ... }}` would
+   otherwise force the whole page to scroll horizontally on a narrow phone
+   screen instead of scrolling just the table. */
+@media (max-width: 767px) {
+  .ant-table-wrapper .ant-table-container {
+    overflow-x: auto;
+  }
+
+  /* Several modals in this app use a fixed width (720/760/800/1100px) meant
+     for desktop editing forms — cap them to the viewport on phones instead
+     of letting them overflow and force page-level horizontal scroll. */
+  .ant-modal {
+    max-width: calc(100vw - 16px);
+    margin: 8px auto;
+  }
+}

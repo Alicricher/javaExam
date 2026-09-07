@@ -439,6 +439,7 @@ export default function TestResultsPage() {
                       rowKey={r => `${r.group_name}_${r.subgroup}`}
                       dataSource={groupStats}
                       loading={groupStatsLoading}
+                      scroll={{ x: 'max-content' }}
                       pagination={false}
                       size="middle"
                       columns={[

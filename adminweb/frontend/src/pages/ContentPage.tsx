@@ -169,7 +169,7 @@ export default function ContentPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 280px minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
+    <div className="content-page-grid" style={{ display: 'grid', gridTemplateColumns: '240px 280px minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
       <div>
         <Title level={5}>{pick(lang, "Bo'limlar", "Разделы")}</Title>
         <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => openUnitModal()} style={{ marginBottom: 8 }}>
@@ -508,6 +508,7 @@ function TestTab({ lesson }: { lesson: Lesson }) {
         size="small"
         dataSource={questions}
         loading={loading}
+        scroll={{ x: 'max-content' }}
         pagination={{ current: page, total, pageSize: 15, onChange: p => loadQuestions(test.id, p), size: 'small' }}
         onRow={r => ({ onClick: () => loadQuestion(r.id), style: { cursor: 'pointer' } })}
         columns={[
@@ -785,6 +786,7 @@ function TheoryTab({ lesson }: { lesson: Lesson }) {
       </Button>
       <Table
         rowKey="id" size="small" dataSource={materials} pagination={false}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 70 },
           { title: pick(lang, 'Nomi', 'Название'), dataIndex: 'titleUz' },
@@ -890,6 +892,7 @@ function TasksTab({ lesson }: { lesson: Lesson }) {
       <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()} style={{ marginBottom: 12 }}>{pick(lang, "Topshiriq qo'shish", 'Добавить задачу')}</Button>
       <Table
         rowKey="id" size="small" dataSource={tasks} pagination={false}
+        scroll={{ x: 'max-content' }}
         columns={[
           { title: '#', dataIndex: 'orderNum', width: 50 },
           { title: 'ID', dataIndex: 'id', width: 70 },

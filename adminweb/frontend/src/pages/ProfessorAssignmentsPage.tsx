@@ -139,6 +139,7 @@ export default function ProfessorAssignmentsPage() {
         columns={columns}
         rowKey="id"
         loading={loading}
+        scroll={{ x: 'max-content' }}
         pagination={false}
         size="small"
         style={{ marginTop: 16 }}
